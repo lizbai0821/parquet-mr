@@ -24,9 +24,13 @@ import org.apache.parquet.bytes.CapacityByteArrayOutputStream;
 import org.apache.parquet.bytes.HeapByteBufferAllocator;
 
 import static org.apache.parquet.bytes.BytesUtils.getWidthFromMaxInt;
+import static org.apache.parquet.column.Encoding.PLAIN;
+import static org.apache.parquet.column.Encoding.PLAIN_DICTIONARY;
+import static org.apache.parquet.column.Encoding.RLE_DICTIONARY;
 import org.apache.parquet.column.impl.ColumnWriteStoreV1;
 import org.apache.parquet.column.impl.ColumnWriteStoreV2;
 import org.apache.parquet.column.page.PageWriteStore;
+import org.apache.parquet.column.statistics.StatisticsOpts;
 import org.apache.parquet.column.values.ValuesWriter;
 import org.apache.parquet.column.values.bitpacking.DevNullValuesWriter;
 import org.apache.parquet.column.values.factory.DefaultValuesWriterFactory;
@@ -86,10 +90,11 @@ public class ParquetProperties {
   private final boolean estimateNextSizeCheck;
   private final ByteBufferAllocator allocator;
   private final ValuesWriterFactory valuesWriterFactory;
+  private final StatisticsOpts statisticsOpts;
 
   private ParquetProperties(WriterVersion writerVersion, int pageSize, int dictPageSize, boolean enableDict, int minRowCountForPageSizeCheck,
                             int maxRowCountForPageSizeCheck, boolean estimateNextSizeCheck, ByteBufferAllocator allocator,
-                            ValuesWriterFactory writerFactory) {
+                            ValuesWriterFactory writerFactory, StatisticsOpts statisticsOpts) {
     this.pageSizeThreshold = pageSize;
     this.initialSlabSize = CapacityByteArrayOutputStream
       .initialSlabSizeHeuristic(MIN_SLAB_SIZE, pageSizeThreshold, 10);
@@ -99,8 +104,8 @@ public class ParquetProperties {
     this.minRowCountForPageSizeCheck = minRowCountForPageSizeCheck;
     this.maxRowCountForPageSizeCheck = maxRowCountForPageSizeCheck;
     this.estimateNextSizeCheck = estimateNextSizeCheck;
+    this.statisticsOpts = statisticsOpts;
     this.allocator = allocator;
-
     this.valuesWriterFactory = writerFactory;
   }
 
@@ -162,6 +167,10 @@ public class ParquetProperties {
     return allocator;
   }
 
+  public StatisticsOpts getStatisticsOpts(){
+    return statisticsOpts;
+  }
+
   public ColumnWriteStore newColumnWriteStore(MessageType schema,
                                               PageWriteStore pageStore) {
     switch (writerVersion) {
@@ -208,6 +217,8 @@ public class ParquetProperties {
     private boolean estimateNextSizeCheck = DEFAULT_ESTIMATE_ROW_COUNT_FOR_PAGE_SIZE_CHECK;
     private ByteBufferAllocator allocator = new HeapByteBufferAllocator();
     private ValuesWriterFactory valuesWriterFactory = DEFAULT_VALUES_WRITER_FACTORY;
+    private StatisticsOpts statisticsOpts = new StatisticsOpts(null);
+
 
     private Builder() {
     }
@@ -220,6 +231,7 @@ public class ParquetProperties {
       this.maxRowCountForPageSizeCheck = toCopy.maxRowCountForPageSizeCheck;
       this.estimateNextSizeCheck = toCopy.estimateNextSizeCheck;
       this.allocator = toCopy.allocator;
+      this.statisticsOpts = toCopy.statisticsOpts;
     }
 
     /**
@@ -302,11 +314,16 @@ public class ParquetProperties {
       return this;
     }
 
+
+    public Builder withStatisticsOpts(StatisticsOpts statisticsOpts){
+      this.statisticsOpts = statisticsOpts;
+      return this;
+    }
+
     public ParquetProperties build() {
-      ParquetProperties properties =
-        new ParquetProperties(writerVersion, pageSize, dictPageSize,
+      return new ParquetProperties(writerVersion, pageSize, dictPageSize,
           enableDict, minRowCountForPageSizeCheck, maxRowCountForPageSizeCheck,
-          estimateNextSizeCheck, allocator, valuesWriterFactory);
+          estimateNextSizeCheck, allocator, valuesWriterFactory, statisticsOpts);
       // we pass a constructed but uninitialized factory to ParquetProperties above as currently
       // creation of ValuesWriters is invoked from within ParquetProperties. In the future
       // we'd like to decouple that and won't need to pass an object to properties and then pass the

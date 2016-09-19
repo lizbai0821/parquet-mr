@@ -23,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.parquet.io.api.Binary;
+
+import org.apache.parquet.column.statistics.ColumnStatisticsOpts;
 import org.junit.Test;
 
 import org.apache.parquet.column.Encoding;
@@ -84,9 +86,10 @@ public class TestStatisticsFilter {
   private static final DoubleColumn doubleColumn = doubleColumn("double.column");
   private static final BinaryColumn missingColumn = binaryColumn("missing");
 
-  private static final IntStatistics intStats = new IntStatistics();
-  private static final IntStatistics nullIntStats = new IntStatistics();
-  private static final DoubleStatistics doubleStats = new DoubleStatistics();
+  private static final IntStatistics intStats = new IntStatistics(new ColumnStatisticsOpts(null));
+  private static final IntStatistics nullIntStats =
+      new IntStatistics(new ColumnStatisticsOpts(null));
+  private static final DoubleStatistics doubleStats = new DoubleStatistics(null);
 
   static {
     intStats.setMinMax(10, 100);
@@ -119,11 +122,11 @@ public class TestStatisticsFilter {
 
   @Test
   public void testEqNull() {
-    IntStatistics statsNoNulls = new IntStatistics();
+    IntStatistics statsNoNulls = new IntStatistics(new ColumnStatisticsOpts(null));
     statsNoNulls.setMinMax(10, 100);
     statsNoNulls.setNumNulls(0);
 
-    IntStatistics statsSomeNulls = new IntStatistics();
+    IntStatistics statsSomeNulls = new IntStatistics(new ColumnStatisticsOpts(null));
     statsSomeNulls.setMinMax(10, 100);
     statsSomeNulls.setNumNulls(3);
 
@@ -145,7 +148,7 @@ public class TestStatisticsFilter {
     assertFalse(canDrop(notEq(intColumn, 100), columnMetas));
     assertFalse(canDrop(notEq(intColumn, 101), columnMetas));
 
-    IntStatistics allSevens = new IntStatistics();
+    IntStatistics allSevens = new IntStatistics(new ColumnStatisticsOpts(null));
     allSevens.setMinMax(7, 7);
     assertTrue(canDrop(notEq(intColumn, 7), Arrays.asList(
         getIntColumnMeta(allSevens, 177L),
@@ -166,15 +169,15 @@ public class TestStatisticsFilter {
 
   @Test
   public void testNotEqNull() {
-    IntStatistics statsNoNulls = new IntStatistics();
+    IntStatistics statsNoNulls = new IntStatistics(new ColumnStatisticsOpts(null));
     statsNoNulls.setMinMax(10, 100);
     statsNoNulls.setNumNulls(0);
 
-    IntStatistics statsSomeNulls = new IntStatistics();
+    IntStatistics statsSomeNulls = new IntStatistics(new ColumnStatisticsOpts(null));
     statsSomeNulls.setMinMax(10, 100);
     statsSomeNulls.setNumNulls(3);
 
-    IntStatistics statsAllNulls = new IntStatistics();
+    IntStatistics statsAllNulls = new IntStatistics(new ColumnStatisticsOpts(null));
     statsAllNulls.setMinMax(0, 0);
     statsAllNulls.setNumNulls(177);
 
@@ -288,13 +291,13 @@ public class TestStatisticsFilter {
     FilterPredicate pred = userDefined(intColumn, SevensAndEightsUdp.class);
     FilterPredicate invPred = LogicalInverseRewriter.rewrite(not(userDefined(intColumn, SevensAndEightsUdp.class)));
 
-    IntStatistics seven = new IntStatistics();
+    IntStatistics seven = new IntStatistics(new ColumnStatisticsOpts(null));
     seven.setMinMax(7, 7);
 
-    IntStatistics eight = new IntStatistics();
+    IntStatistics eight = new IntStatistics(new ColumnStatisticsOpts(null));
     eight.setMinMax(8, 8);
 
-    IntStatistics neither = new IntStatistics();
+    IntStatistics neither = new IntStatistics(new ColumnStatisticsOpts(null));
     neither.setMinMax(1 , 2);
 
     assertTrue(canDrop(pred, Arrays.asList(
@@ -325,8 +328,8 @@ public class TestStatisticsFilter {
   @Test
   public void testClearExceptionForNots() {
     List<ColumnChunkMetaData> columnMetas = Arrays.asList(
-        getDoubleColumnMeta(new DoubleStatistics(), 0L),
-        getIntColumnMeta(new IntStatistics(), 0L));
+        getDoubleColumnMeta(new DoubleStatistics(null), 0L),
+        getIntColumnMeta(new IntStatistics(null), 0L));
 
     FilterPredicate pred = and(not(eq(doubleColumn, 12.0)), eq(intColumn, 17));
 
@@ -336,6 +339,18 @@ public class TestStatisticsFilter {
     } catch (IllegalArgumentException e) {
       assertEquals("This predicate contains a not! Did you forget to run this predicate through LogicalInverseRewriter?"
           + " not(eq(double.column, 12.0))", e.getMessage());
+    }
+  }
+
+  @Test
+  public void testMissingColumn() {
+    List<ColumnChunkMetaData> columnMetas =
+        Arrays.asList(getIntColumnMeta(new IntStatistics(new ColumnStatisticsOpts(null)), 0L));
+    try {
+      canDrop(and(eq(doubleColumn, 12.0), eq(intColumn, 17)), columnMetas);
+      fail("This should throw");
+    } catch (IllegalArgumentException e) {
+      assertEquals("Column double.column not found in schema!", e.getMessage());
     }
   }
 

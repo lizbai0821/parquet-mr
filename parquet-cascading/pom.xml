@@ -81,6 +81,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.apache.thrift</groupId>
+      <artifactId>libthrift</artifactId>
+      <version>${thrift.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>cascading</groupId>
       <artifactId>cascading-hadoop</artifactId>
       <version>${cascading.version}</version>

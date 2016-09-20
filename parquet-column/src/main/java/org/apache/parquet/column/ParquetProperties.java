@@ -321,7 +321,8 @@ public class ParquetProperties {
     }
 
     public ParquetProperties build() {
-      return new ParquetProperties(writerVersion, pageSize, dictPageSize,
+      ParquetProperties properties =
+        new ParquetProperties(writerVersion, pageSize, dictPageSize,
           enableDict, minRowCountForPageSizeCheck, maxRowCountForPageSizeCheck,
           estimateNextSizeCheck, allocator, valuesWriterFactory, statisticsOpts);
       // we pass a constructed but uninitialized factory to ParquetProperties above as currently

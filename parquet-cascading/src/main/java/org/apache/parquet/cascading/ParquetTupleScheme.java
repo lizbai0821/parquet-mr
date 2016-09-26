@@ -44,6 +44,8 @@ import org.apache.parquet.hadoop.mapred.Container;
 import org.apache.parquet.hadoop.mapred.DeprecatedParquetInputFormat;
 import org.apache.parquet.hadoop.mapred.DeprecatedParquetOutputFormat;
 import org.apache.parquet.schema.MessageType;
+import shaded.parquet.org.slf4j.Logger;
+import shaded.parquet.org.slf4j.LoggerFactory;
 
 import static org.apache.parquet.Preconditions.checkNotNull;
 
@@ -65,6 +67,7 @@ public class ParquetTupleScheme extends Scheme<JobConf, RecordReader, OutputColl
   private static final long serialVersionUID = 0L;
   private String parquetSchema;
   private final FilterPredicate filterPredicate;
+
 
   public ParquetTupleScheme() {
     super();
@@ -107,12 +110,14 @@ public class ParquetTupleScheme extends Scheme<JobConf, RecordReader, OutputColl
 
     if (filterPredicate != null) {
       ParquetInputFormat.setFilterPredicate(jobConf, filterPredicate);
+
     }
 
     jobConf.setInputFormat(DeprecatedParquetInputFormat.class);
     ParquetInputFormat.setReadSupportClass(jobConf, TupleReadSupport.class);
     TupleReadSupport.setRequestedFields(jobConf, getSourceFields());
  }
+
 
  @Override
  public Fields retrieveSourceFields(FlowProcess<JobConf> flowProcess, Tap tap) {

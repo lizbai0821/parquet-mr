@@ -55,6 +55,8 @@ import org.apache.parquet.hadoop.metadata.FileMetaData;
 import org.apache.parquet.hadoop.util.ContextUtil;
 import org.apache.parquet.hadoop.util.counters.BenchmarkCounter;
 import org.apache.parquet.io.ParquetDecodingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reads the records from a block of a Parquet file
@@ -69,6 +71,7 @@ public class ParquetRecordReader<T> extends RecordReader<Void, T> {
 
   private static final Log LOG = Log.getLog(ParquetRecordReader.class);
   private final InternalParquetRecordReader<T> internalReader;
+  private Logger logger = LoggerFactory.getLogger(getClass());
 
   /**
    * @param readSupport Object which helps reads files of the given type, e.g. Thrift, Avro.
@@ -148,9 +151,11 @@ public class ParquetRecordReader<T> extends RecordReader<Void, T> {
       throws IOException, InterruptedException {
     BenchmarkCounter.initCounterFromReporter(reporter,configuration);
     initializeInternalReader(toParquetSplit(inputSplit), configuration);
+
   }
 
   private void initializeInternalReader(ParquetInputSplit split, Configuration configuration) throws IOException {
+    logger.info("initialize internal reader here");
     Path path = split.getPath();
     long[] rowGroupOffsets = split.getRowGroupOffsets();
 

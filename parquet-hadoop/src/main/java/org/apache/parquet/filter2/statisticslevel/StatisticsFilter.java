@@ -40,6 +40,8 @@ import org.apache.parquet.filter2.predicate.Operators.Or;
 import org.apache.parquet.filter2.predicate.Operators.UserDefined;
 import org.apache.parquet.filter2.predicate.UserDefinedPredicate;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.parquet.Preconditions.checkArgument;
 import static org.apache.parquet.Preconditions.checkNotNull;
@@ -67,6 +69,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
 
   private static final boolean BLOCK_MIGHT_MATCH = false;
   private static final boolean BLOCK_CANNOT_MATCH = true;
+  private Logger logger = LoggerFactory.getLogger(getClass());
 
   public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
     checkNotNull(pred, "pred");
@@ -101,6 +104,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
   @Override
   @SuppressWarnings("unchecked")
   public <T extends Comparable<T>> Boolean visit(Eq<T> eq) {
+    logger.info("Check equal now");
     Column<T> filterColumn = eq.getColumn();
     ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
 
@@ -141,6 +145,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
     if (isWithinRange || stats instanceof BloomFilterStatistics) {
       BloomFilterStatistics bfStats = (BloomFilterStatistics) stats;
       if (bfStats.isBloomFilterEnabled()) {
+        logger.info("Bloom filter is enabled ");
         return isWithinRange || !bfStats.test(value);
       }
     }

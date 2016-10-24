@@ -22,145 +22,184 @@ import org.apache.parquet.bytes.BytesUtils;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilter;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 
-public class IntStatistics extends Statistics<Integer> implements BloomFilterStatistics<Integer> {
-  private int max;
-  private int min;
-  private BloomFilter bloomFilter;
-  private boolean isBloomFilterEnabled = false;
+public class IntStatistics extends Statistics<Integer> implements BloomFilterStatistics<Integer>, HistogramStatistics<Integer> {
+    private int max;
+    private int min;
+    private BloomFilter bloomFilter;
+    private boolean isBloomFilterEnabled = false;
+    private Histogram histogram;
+    private boolean isHistogramEnabled = false;
 
-  public IntStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
-    super();
-    if (columnStatisticsOpts != null) {
-      updateBloomFilterOptions(columnStatisticsOpts.getBloomFilterOpts());
+
+    public IntStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
+        super();
+        if (columnStatisticsOpts != null) {
+
+            BloomFilterOpts.BloomFilterEntry bloomFilterEntry = columnStatisticsOpts.getBloomFilterOpts();
+            HistogramOpts.HistogramEntry histogramEntry = columnStatisticsOpts.getHistogramOpts();
+
+            if (bloomFilterEntry != null) {
+                this.bloomFilter = new BloomFilter(bloomFilterEntry);
+                this.isBloomFilterEnabled = true;
+            }
+            if (histogramEntry != null) {
+                this.histogram = new Histogram(histogramEntry);
+                this.isHistogramEnabled = true;
+            }
+
+        }
     }
-  }
 
-  private void updateBloomFilterOptions(BloomFilterOpts.BloomFilterEntry statisticsOpts) {
-    if (statisticsOpts != null) {
-      bloomFilter =
-          new BloomFilter(statisticsOpts.getNumBits(), statisticsOpts.getNumHashFunctions());
-      isBloomFilterEnabled = true;
+   /* private void updateBloomFilterOptions(BloomFilterOpts.BloomFilterEntry statisticsOpts) {
+        if (statisticsOpts != null) {
+            bloomFilter =
+                    new BloomFilter(statisticsOpts.getNumBits(), statisticsOpts.getNumHashFunctions());
+            isBloomFilterEnabled = true;
+        }
+    }*/
+
+    @Override
+    public void updateStats(int value) {
+        if (!this.hasNonNullValue()) {
+            initializeStats(value, value);
+        } else {
+            updateStats(value, value);
+        }
+
+        if (isBloomFilterEnabled) {
+            bloomFilter.addInteger(value);
+        }
+
+        if (isHistogramEnabled) {
+            histogram.addInteger(value);
+        }
     }
-  }
 
-  @Override
-  public void updateStats(int value) {
-    if (!this.hasNonNullValue()) {
-      initializeStats(value, value);
-    } else {
-      updateStats(value, value);
+    @Override
+    public void mergeStatisticsMinMax(Statistics stats) {
+        IntStatistics intStats = (IntStatistics) stats;
+        if (!this.hasNonNullValue()) {
+            initializeStats(intStats.getMin(), intStats.getMax());
+        } else {
+            updateStats(intStats.getMin(), intStats.getMax());
+        }
     }
 
-    if (isBloomFilterEnabled) {
-      add(value);
+    @Override
+    void mergeBloomFilters(Statistics stats) {
+        if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
+            this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+        }
     }
-  }
 
-  @Override
-  public void mergeStatisticsMinMax(Statistics stats) {
-    IntStatistics intStats = (IntStatistics) stats;
-    if (!this.hasNonNullValue()) {
-      initializeStats(intStats.getMin(), intStats.getMax());
-    } else {
-      updateStats(intStats.getMin(), intStats.getMax());
+    @Override
+    void mergeHistogram(Statistics stats) {
+        if (isHistogramEnabled && stats instanceof HistogramStatistics) {
+            this.histogram.merge(((HistogramStatistics) stats).getHistogram());
+        }
     }
-  }
 
-  @Override
-  public void mergeBloomFilters(Statistics stats) {
-    if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
-      this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+    @Override
+    public void setMinMaxFromBytes(byte[] minBytes, byte[] maxBytes) {
+        max = BytesUtils.bytesToInt(maxBytes);
+        min = BytesUtils.bytesToInt(minBytes);
+        this.markAsNotEmpty();
     }
-  }
 
-  @Override
-  public void setMinMaxFromBytes(byte[] minBytes, byte[] maxBytes) {
-    max = BytesUtils.bytesToInt(maxBytes);
-    min = BytesUtils.bytesToInt(minBytes);
-    this.markAsNotEmpty();
-  }
-
-  @Override
-  public byte[] getMaxBytes() {
-    return BytesUtils.intToBytes(max);
-  }
-
-  @Override
-  public byte[] getMinBytes() {
-    return BytesUtils.intToBytes(min);
-  }
-
-  @Override
-  public boolean isSmallerThan(long size) {
-    return !hasNonNullValue() || (8 < size);
-  }
-
-  @Override
-  public String toString() {
-    if (this.hasNonNullValue())
-      return String.format("min: %d, max: %d, num_nulls: %d", min, max, this.getNumNulls());
-    else if (!this.isEmpty())
-      return String.format("num_nulls: %d, min/max is not defined", this.getNumNulls());
-    else
-      return "no stats for this column";
-  }
-
-  public void updateStats(int min_value, int max_value) {
-    if (min_value < min) {
-      min = min_value;
+    @Override
+    public byte[] getMaxBytes() {
+        return BytesUtils.intToBytes(max);
     }
-    if (max_value > max) {
-      max = max_value;
+
+    @Override
+    public byte[] getMinBytes() {
+        return BytesUtils.intToBytes(min);
     }
-  }
 
-  public void initializeStats(int min_value, int max_value) {
-    min = min_value;
-    max = max_value;
-    this.markAsNotEmpty();
-  }
+    @Override
+    public boolean isSmallerThan(long size) {
+        return !hasNonNullValue() || (8 < size);
+    }
 
-  @Override
-  public Integer genericGetMin() {
-    return min;
-  }
+    @Override
+    public String toString() {
+        if (this.hasNonNullValue())
+            return String.format("min: %d, max: %d, num_nulls: %d", min, max, this.getNumNulls());
+        else if (!this.isEmpty())
+            return String.format("num_nulls: %d, min/max is not defined", this.getNumNulls());
+        else
+            return "no stats for this column";
+    }
 
-  @Override
-  public Integer genericGetMax() {
-    return max;
-  }
+    public void updateStats(int min_value, int max_value) {
+        if (min_value < min) {
+            min = min_value;
+        }
+        if (max_value > max) {
+            max = max_value;
+        }
+    }
 
-  public void add(Integer value) {
-    bloomFilter.addInteger(value);
-  }
+    public void initializeStats(int min_value, int max_value) {
+        min = min_value;
+        max = max_value;
+        this.markAsNotEmpty();
+    }
 
-  @Override
-  public BloomFilter getBloomFilter() {
-    return bloomFilter;
-  }
+    @Override
+    public Integer genericGetMin() {
+        return min;
+    }
 
-  @Override
-  public boolean test(Integer value) {
-    return bloomFilter.testInteger(value);
-  }
+    @Override
+    public Integer genericGetMax() {
+        return max;
+    }
 
-  @Override
-  public boolean isBloomFilterEnabled() {
-    return isBloomFilterEnabled;
-  }
+    public void add(Integer value) {
+        bloomFilter.addInteger(value);
+    }
 
-  public int getMax() {
-    return max;
-  }
+    @Override
+    public BloomFilter getBloomFilter() {
+        return bloomFilter;
+    }
 
-  public int getMin() {
-    return min;
-  }
+    @Override
+    public Histogram getHistogram() {
+        return histogram;
+    }
 
-  public void setMinMax(int min, int max) {
-    this.max = max;
-    this.min = min;
-    this.markAsNotEmpty();
-  }
+    @Override
+    public boolean test(Integer value) {
+        return bloomFilter.testInteger(value);
+    }
+
+    @Override
+    public boolean isBloomFilterEnabled() {
+        return isBloomFilterEnabled;
+    }
+
+    @Override
+    public boolean isHistogramEnabled() {
+        return isHistogramEnabled;
+    }
+
+    public int getMax() {
+        return max;
+    }
+
+    public int getMin() {
+        return min;
+    }
+
+    public void setMinMax(int min, int max) {
+        this.max = max;
+        this.min = min;
+        this.markAsNotEmpty();
+    }
 }

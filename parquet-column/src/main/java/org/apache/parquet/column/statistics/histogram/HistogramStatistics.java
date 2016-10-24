@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.parquet.column.statistics.bloomfilter;
+package org.apache.parquet.column.statistics.histogram;
 
-public interface BloomFilterStatistics<T> {
+public interface HistogramStatistics<T> {
   //void add(T value);
 
-  BloomFilter getBloomFilter();
+  Histogram getHistogram();
 
   boolean test(T value);
 
-  boolean isBloomFilterEnabled();
+  boolean isHistogramEnabled();
 }

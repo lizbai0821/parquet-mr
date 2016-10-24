@@ -19,15 +19,34 @@
 package org.apache.parquet.column.statistics;
 
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 
 public class ColumnStatisticsOpts {
-  BloomFilterOpts.BloomFilterEntry bloomFilterOpts;
+    BloomFilterOpts.BloomFilterEntry bloomFilterEntry;
+    HistogramOpts.HistogramEntry histogramEntry;
 
-  public ColumnStatisticsOpts(BloomFilterOpts.BloomFilterEntry bloomFilterOpts) {
-    this.bloomFilterOpts = bloomFilterOpts;
-  }
+    public ColumnStatisticsOpts() {
 
-  public BloomFilterOpts.BloomFilterEntry getBloomFilterOpts() {
-    return bloomFilterOpts;
-  }
+    }
+
+    public ColumnStatisticsOpts(BloomFilterOpts.BloomFilterEntry bloomFilterEntry) {
+        this.bloomFilterEntry = bloomFilterEntry;
+    }
+
+    public ColumnStatisticsOpts(HistogramOpts.HistogramEntry histogramEntry) {
+        this.histogramEntry = histogramEntry;
+    }
+
+    public ColumnStatisticsOpts(BloomFilterOpts.BloomFilterEntry bloomFilterEntry, HistogramOpts.HistogramEntry histogramEntry) {
+        this.bloomFilterEntry = bloomFilterEntry;
+        this.histogramEntry = histogramEntry;
+    }
+
+    public BloomFilterOpts.BloomFilterEntry getBloomFilterOpts() {
+        return bloomFilterEntry;
+    }
+
+    public HistogramOpts.HistogramEntry getHistogramOpts() {
+        return histogramEntry;
+    }
 }

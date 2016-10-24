@@ -54,6 +54,12 @@ public class BloomFilter {
         this.bitSet = new BitSet(numBits);
     }
 
+    public BloomFilter(BloomFilterOpts.BloomFilterEntry entry) {
+        this.numBits = entry.getNumBits();
+        this.numHashFunctions = entry.getNumHashFunctions();
+        this.bitSet = new BitSet(numBits);
+    }
+
     public void add(byte[] val) {
         if (val == null) {
             addBytes(val, -1);

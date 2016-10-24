@@ -22,141 +22,182 @@ import org.apache.parquet.bytes.BytesUtils;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilter;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 
-public class LongStatistics extends Statistics<Long> implements BloomFilterStatistics<Long> {
-  private long max;
-  private long min;
-  private BloomFilter bloomFilter;
-  private boolean isBloomFilterEnabled = false;
+public class LongStatistics extends Statistics<Long> implements BloomFilterStatistics<Long>, HistogramStatistics<Long> {
+    private long max;
+    private long min;
+    private BloomFilter bloomFilter;
+    private boolean isBloomFilterEnabled = false;
+    private Histogram histogram;
+    private boolean isHistogramEnabled = false;
 
-  public LongStatistics(ColumnStatisticsOpts columnStatisticsOpts){
-    super();
-    if (columnStatisticsOpts != null) {
-      updateBloomFilterOptions(columnStatisticsOpts.getBloomFilterOpts());
+    public LongStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
+        super();
+        if (columnStatisticsOpts != null) {
+
+            BloomFilterOpts.BloomFilterEntry bloomFilterEntry = columnStatisticsOpts.getBloomFilterOpts();
+            HistogramOpts.HistogramEntry histogramEntry = columnStatisticsOpts.getHistogramOpts();
+
+            if (bloomFilterEntry != null) {
+                this.bloomFilter = new BloomFilter(bloomFilterEntry);
+                this.isBloomFilterEnabled = true;
+            }
+            if (histogramEntry != null) {
+                this.histogram = new Histogram(histogramEntry);
+                this.isHistogramEnabled = true;
+            }
+
+        }
     }
-  }
 
-  private void updateBloomFilterOptions(BloomFilterOpts.BloomFilterEntry statisticsOpts) {
-    if (statisticsOpts != null) {
-      bloomFilter =
-          new BloomFilter(statisticsOpts.getNumBits(), statisticsOpts.getNumHashFunctions());
-      isBloomFilterEnabled = true;
+//    private void updateBloomFilterOptions(BloomFilterOpts.BloomFilterEntry statisticsOpts) {
+//        if (statisticsOpts != null) {
+//            bloomFilter =
+//                    new BloomFilter(statisticsOpts.getNumBits(), statisticsOpts.getNumHashFunctions());
+//            isBloomFilterEnabled = true;
+//        }
+//    }
+
+    public void updateStats(long value) {
+        if (!this.hasNonNullValue()) {
+            initializeStats(value, value);
+        } else {
+            updateStats(value, value);
+        }
+
+        if (isBloomFilterEnabled) {
+            this.bloomFilter.addLong(value);
+        }
+
+        if (isHistogramEnabled) {
+            this.histogram.addLong(value);
+        }
     }
-  }
 
-  public void updateStats(long value) {
-    if (!this.hasNonNullValue()) {
-      initializeStats(value, value);
-    } else {
-      updateStats(value, value);
+    @Override
+    void mergeBloomFilters(Statistics stats) {
+        if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
+            this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+        }
     }
 
-    if (isBloomFilterEnabled) {
-      add(value);
+    @Override
+    void mergeHistogram(Statistics stats) {
+        if (isHistogramEnabled && stats instanceof HistogramStatistics) {
+            this.histogram.merge(((HistogramStatistics) stats).getHistogram());
+        }
     }
-  }
 
-  @Override
-  void mergeBloomFilters(Statistics stats) {
-    if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
-      this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+    @Override
+    public void mergeStatisticsMinMax(Statistics stats) {
+        LongStatistics longStats = (LongStatistics) stats;
+        if (!this.hasNonNullValue()) {
+            initializeStats(longStats.getMin(), longStats.getMax());
+        } else {
+            updateStats(longStats.getMin(), longStats.getMax());
+        }
     }
-  }
 
-  @Override
-  public void mergeStatisticsMinMax(Statistics stats) {
-    LongStatistics longStats = (LongStatistics)stats;
-    if (!this.hasNonNullValue()) {
-      initializeStats(longStats.getMin(), longStats.getMax());
-    } else {
-      updateStats(longStats.getMin(), longStats.getMax());
+    @Override
+    public void setMinMaxFromBytes(byte[] minBytes, byte[] maxBytes) {
+        max = BytesUtils.bytesToLong(maxBytes);
+        min = BytesUtils.bytesToLong(minBytes);
+        this.markAsNotEmpty();
     }
-  }
 
-  @Override
-  public void setMinMaxFromBytes(byte[] minBytes, byte[] maxBytes) {
-    max = BytesUtils.bytesToLong(maxBytes);
-    min = BytesUtils.bytesToLong(minBytes);
-    this.markAsNotEmpty();
-  }
+    @Override
+    public byte[] getMaxBytes() {
+        return BytesUtils.longToBytes(max);
+    }
 
-  @Override
-  public byte[] getMaxBytes() {
-    return BytesUtils.longToBytes(max);
-  }
+    @Override
+    public byte[] getMinBytes() {
+        return BytesUtils.longToBytes(min);
+    }
 
-  @Override
-  public byte[] getMinBytes() {
-    return BytesUtils.longToBytes(min);
-  }
+    @Override
+    public boolean isSmallerThan(long size) {
+        return !hasNonNullValue() || (16 < size);
+    }
 
-  @Override
-  public boolean isSmallerThan(long size) {
-    return !hasNonNullValue() || (16 < size);
-  }
+    @Override
+    public String toString() {
+        if (this.hasNonNullValue())
+            return String.format("min: %d, max: %d, num_nulls: %d", min, max, this.getNumNulls());
+        else if (!this.isEmpty())
+            return String.format("num_nulls: %d, min/max not defined", this.getNumNulls());
+        else
+            return "no stats for this column";
+    }
 
-  @Override
-  public String toString() {
-    if (this.hasNonNullValue())
-      return String.format("min: %d, max: %d, num_nulls: %d", min, max, this.getNumNulls());
-    else if (!this.isEmpty())
-      return String.format("num_nulls: %d, min/max not defined", this.getNumNulls());
-    else
-      return "no stats for this column";
-  }
+    public void updateStats(long min_value, long max_value) {
+        if (min_value < min) {
+            min = min_value;
+        }
+        if (max_value > max) {
+            max = max_value;
+        }
+    }
 
-  public void updateStats(long min_value, long max_value) {
-    if (min_value < min) { min = min_value; }
-    if (max_value > max) { max = max_value; }
-  }
+    public void initializeStats(long min_value, long max_value) {
+        min = min_value;
+        max = max_value;
+        this.markAsNotEmpty();
+    }
 
-  public void initializeStats(long min_value, long max_value) {
-      min = min_value;
-      max = max_value;
-      this.markAsNotEmpty();
-  }
+    @Override
+    public Long genericGetMin() {
+        return min;
+    }
 
-  @Override
-  public Long genericGetMin() {
-    return min;
-  }
+    @Override
+    public Long genericGetMax() {
+        return max;
+    }
 
-  @Override
-  public Long genericGetMax() {
-    return max;
-  }
+    public long getMax() {
+        return max;
+    }
 
-  public long getMax() {
-    return max;
-  }
+    public long getMin() {
+        return min;
+    }
 
-  public long getMin() {
-    return min;
-  }
+    public void setMinMax(long min, long max) {
+        this.max = max;
+        this.min = min;
+        this.markAsNotEmpty();
+    }
 
-  public void setMinMax(long min, long max) {
-    this.max = max;
-    this.min = min;
-    this.markAsNotEmpty();
-  }
+    public void add(Long value) {
+        bloomFilter.addLong(value);
+    }
 
-  @Override
-  public void add(Long value) {
-    bloomFilter.addLong(value);
-  }
+    @Override
+    public BloomFilter getBloomFilter() {
+        return bloomFilter;
+    }
 
-  @Override
-  public BloomFilter getBloomFilter() {
-    return bloomFilter;
-  }
+    @Override
+    public Histogram getHistogram() {
+        return histogram;
+    }
 
-  @Override
-  public boolean test(Long value) {
-    return bloomFilter.testLong(value);
-  }
+    @Override
+    public boolean test(Long value) {
+        return bloomFilter.testLong(value);
+    }
 
-  @Override
-  public boolean isBloomFilterEnabled() {
-    return isBloomFilterEnabled;
-  }
+    @Override
+    public boolean isBloomFilterEnabled() {
+        return isBloomFilterEnabled;
+    }
+
+    @Override
+    public boolean isHistogramEnabled() {
+        return isHistogramEnabled;
+    }
 }

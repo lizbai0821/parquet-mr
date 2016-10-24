@@ -34,7 +34,12 @@ public class BooleanStatistics extends Statistics<Boolean> {
   }
 
   @Override
-  void mergeBloomFilters(Statistics stats) {
+  public void mergeBloomFilters(Statistics stats) {
+    // Do nothing
+  }
+
+  @Override
+  public void mergeHistogram(Statistics stats) {
     // Do nothing
   }
 

@@ -81,8 +81,8 @@ public class BloomFilterOptBuilder {
     if (colNames.isEmpty()) {
       return null;
     }
-    String cols[] = colNames.split(",");
-    double fpps[] = new double[cols.length];
+    String[] cols = colNames.split(",");
+    double[] fpps = new double[cols.length];
     if (falsePositiveProbabilities.isEmpty()) {
       Arrays.fill(fpps, BloomFilter.DEFAULT_FALSE_POSITIVE_PROBABILITY);
     } else {

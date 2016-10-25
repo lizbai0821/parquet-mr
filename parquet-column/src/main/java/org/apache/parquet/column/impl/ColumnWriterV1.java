@@ -18,10 +18,6 @@
  */
 package org.apache.parquet.column.impl;
 
-import static org.apache.parquet.bytes.BytesInput.concat;
-
-import java.io.IOException;
-
 import org.apache.parquet.Log;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ColumnWriter;
@@ -35,7 +31,9 @@ import org.apache.parquet.column.values.ValuesWriter;
 import org.apache.parquet.io.ParquetEncodingException;
 import org.apache.parquet.io.api.Binary;
 
-import static java.lang.Math.max;
+import java.io.IOException;
+
+import static org.apache.parquet.bytes.BytesInput.concat;
 
 /**
  * Writes (repetition level, definition level, value) triplets and deals with writing pages to the underlying layer.

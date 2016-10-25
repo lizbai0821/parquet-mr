@@ -19,12 +19,8 @@
 package org.apache.parquet.column.statistics;
 
 import org.apache.parquet.column.ColumnDescriptor;
-import org.apache.parquet.column.statistics.bloomfilter.BloomFilter;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
-import org.apache.parquet.column.statistics.histogram.Histogram;
-import org.apache.parquet.column.statistics.histogram.HistogramOptBuilder;
 import org.apache.parquet.column.statistics.histogram.HistogramOpts;
-import org.apache.parquet.filter2.predicate.Operators;
 
 import java.util.HashMap;
 import java.util.HashSet;

@@ -19,7 +19,6 @@
 package org.apache.parquet.column.statistics.histogram;
 
 import org.apache.parquet.column.ColumnDescriptor;
-
 import java.util.HashMap;
 import java.util.Map;
 

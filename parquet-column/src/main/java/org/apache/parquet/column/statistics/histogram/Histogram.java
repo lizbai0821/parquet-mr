@@ -18,8 +18,6 @@
  */
 package org.apache.parquet.column.statistics.histogram;
 
-import org.apache.parquet.column.page.Page;
-
 /**
  * kaiser ding Histogram
  */

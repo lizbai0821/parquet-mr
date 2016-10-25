@@ -38,6 +38,7 @@ public class Histogram {
         this.min = entry.getMin();
         this.max = entry.getMax();
         this.buckets = entry.getEvenBuckets();
+        this.counters = new int[bucketsCount];
     }
 
 

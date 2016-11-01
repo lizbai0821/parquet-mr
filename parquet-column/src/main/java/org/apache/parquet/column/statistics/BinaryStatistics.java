@@ -66,6 +66,11 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
   }
 
   @Override
+  public void mergeHistogram(Statistics stats) {
+    // Do nothing
+  }
+
+  @Override
   public void mergeStatisticsMinMax(Statistics stats) {
     BinaryStatistics binaryStats = (BinaryStatistics)stats;
     if (!this.hasNonNullValue()) {
@@ -168,7 +173,6 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
     this.markAsNotEmpty();
   }
 
-  @Override
   public void add(Binary value) {
     bloomFilter.addBinary(value);
   }

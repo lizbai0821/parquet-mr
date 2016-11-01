@@ -178,6 +178,9 @@ public class IntStatistics extends Statistics<Integer> implements BloomFilterSta
     public boolean test(Integer value) {
         return bloomFilter.testInteger(value);
     }
+    public boolean test(Integer value1, Integer value2) {
+        return histogram.testInteger(value1, value2);
+    }
 
     @Override
     public boolean isBloomFilterEnabled() {

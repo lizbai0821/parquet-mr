@@ -23,7 +23,7 @@ public interface HistogramStatistics<T> {
 
   Histogram getHistogram();
 
-  boolean test(T value);
+  boolean test(T value, T value2);
 
   boolean isHistogramEnabled();
 }

@@ -300,7 +300,7 @@ public final class Operators {
 
   public static final class And extends BinaryLogicalFilterPredicate {
 
-    And(FilterPredicate left, FilterPredicate right) {
+    public And(FilterPredicate left, FilterPredicate right) {
       super(left, right);
     }
 

@@ -18,12 +18,15 @@
  */
 package org.apache.parquet.filter2.statisticslevel;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.parquet.column.statistics.Statistics;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.hadoop.metadata.ColumnPath;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
 import org.apache.parquet.filter2.predicate.Operators.And;
@@ -74,7 +77,33 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
   public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
     checkNotNull(pred, "pred");
     checkNotNull(columns, "columns");
-    return pred.accept(new StatisticsFilter(columns));
+    boolean judge = pred.accept(new StatisticsFilter(columns));
+    if(judge){
+        return true;
+    }
+
+    //else: utilize histogram
+    And doublePlan = new And(pred, pred);
+    String planText = doublePlan.toString();
+    InRangeList Raw_rangelist = new InRangeList(planText);
+    ArrayList<InRange>  RangeList = Raw_rangelist.SelfJoin().getList();
+    for(int i=0; i<RangeList.size(); i++){
+        String Column = RangeList.get(i).ColumnName;
+        int Low = RangeList.get(i).Lower.intValue();
+        int Up = RangeList.get(i).Upper.intValue();
+
+        for(ColumnChunkMetaData chunk: columns){
+            if (chunk.getPath().equals(Column)){
+                // call histogram here
+                Statistics stats = chunk.getStatistics();
+                HistogramStatistics histogram = (HistogramStatistics) stats;
+                if(histogram.isHistogramEnabled()){
+
+                }
+            }
+        }
+
+    }
   }
 
   private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();

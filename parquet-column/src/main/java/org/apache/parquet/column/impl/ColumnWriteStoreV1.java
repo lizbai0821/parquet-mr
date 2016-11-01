@@ -18,22 +18,15 @@
  */
 package org.apache.parquet.column.impl;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.TreeMap;
-
-import org.apache.parquet.bytes.ByteBufferAllocator;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ColumnWriteStore;
 import org.apache.parquet.column.ColumnWriter;
 import org.apache.parquet.column.ParquetProperties;
-import org.apache.parquet.column.ParquetProperties.WriterVersion;
 import org.apache.parquet.column.page.PageWriteStore;
 import org.apache.parquet.column.page.PageWriter;
-import org.apache.parquet.column.statistics.StatisticsOpts;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class ColumnWriteStoreV1 implements ColumnWriteStore {
 

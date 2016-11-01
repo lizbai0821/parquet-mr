@@ -18,8 +18,6 @@
  */
 package org.apache.parquet.column.statistics.histogram;
 
-import org.apache.parquet.column.page.Page;
-
 /**
  * kaiser ding Histogram
  */
@@ -38,6 +36,7 @@ public class Histogram {
         this.min = entry.getMin();
         this.max = entry.getMax();
         this.buckets = entry.getEvenBuckets();
+        this.counters = new int[bucketsCount];
     }
 
 

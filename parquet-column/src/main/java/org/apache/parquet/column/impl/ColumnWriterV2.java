@@ -18,14 +18,9 @@
  */
 package org.apache.parquet.column.impl;
 
-import static org.apache.parquet.bytes.BytesUtils.getWidthFromMaxInt;
-
-import java.io.IOException;
-
 import org.apache.parquet.Ints;
 import org.apache.parquet.Log;
 import org.apache.parquet.bytes.BytesInput;
-import org.apache.parquet.bytes.CapacityByteArrayOutputStream;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ColumnWriter;
 import org.apache.parquet.column.Encoding;
@@ -39,6 +34,8 @@ import org.apache.parquet.column.values.ValuesWriter;
 import org.apache.parquet.column.values.rle.RunLengthBitPackingHybridEncoder;
 import org.apache.parquet.io.ParquetEncodingException;
 import org.apache.parquet.io.api.Binary;
+
+import java.io.IOException;
 
 /**
  * Writes (repetition level, definition level, value) triplets and deals with writing pages to the underlying layer.

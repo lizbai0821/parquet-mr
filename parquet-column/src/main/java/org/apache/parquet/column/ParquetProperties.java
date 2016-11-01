@@ -217,7 +217,7 @@ public class ParquetProperties {
     private boolean estimateNextSizeCheck = DEFAULT_ESTIMATE_ROW_COUNT_FOR_PAGE_SIZE_CHECK;
     private ByteBufferAllocator allocator = new HeapByteBufferAllocator();
     private ValuesWriterFactory valuesWriterFactory = DEFAULT_VALUES_WRITER_FACTORY;
-    private StatisticsOpts statisticsOpts = new StatisticsOpts(null);
+    private StatisticsOpts statisticsOpts = new StatisticsOpts();
 
 
     private Builder() {

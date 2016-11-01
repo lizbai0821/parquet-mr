@@ -1,6 +1,5 @@
 package org.apache.parquet.column.statistics.histogram;
 
-import org.apache.parquet.Strings;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.schema.MessageType;
 

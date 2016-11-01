@@ -18,11 +18,9 @@
  */
 package org.apache.parquet.column.statistics.bloomfilter;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.parquet.io.api.Binary;
 
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * BloomFilter is a probabilistic data structure for set membership check. BloomFilters are

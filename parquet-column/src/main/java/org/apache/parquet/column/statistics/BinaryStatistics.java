@@ -21,6 +21,8 @@ package org.apache.parquet.column.statistics;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilter;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.io.api.Binary;
 
 public class BinaryStatistics extends Statistics<Binary> implements BloomFilterStatistics<Binary>{
@@ -29,6 +31,8 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
   private Binary min;
   private BloomFilter bloomFilter;
   private boolean isBloomFilterEnabled = false;
+  private Histogram histogram;
+  private boolean isHistogramEnabled = false;
 
   public BinaryStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
     super();
@@ -62,6 +66,13 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
   void mergeBloomFilters(Statistics stats) {
     if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
       this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+    }
+  }
+
+  @Override
+  void mergeHistogram(Statistics stats) {
+    if (isHistogramEnabled && stats instanceof HistogramStatistics) {
+      this.histogram.merge(((HistogramStatistics) stats).getHistogram());
     }
   }
 
@@ -168,7 +179,6 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
     this.markAsNotEmpty();
   }
 
-  @Override
   public void add(Binary value) {
     bloomFilter.addBinary(value);
   }

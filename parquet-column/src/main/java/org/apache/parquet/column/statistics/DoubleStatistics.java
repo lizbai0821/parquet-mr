@@ -193,6 +193,11 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
         return bloomFilter.testDouble(value);
     }
 
+
+    public boolean test(Double value1, Double value2) {
+        return histogram.testDouble(value1, value2);
+    }
+
     @Override
     public boolean isBloomFilterEnabled() {
         return isBloomFilterEnabled;

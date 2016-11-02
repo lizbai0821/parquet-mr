@@ -89,8 +89,8 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
     ArrayList<InRange>  RangeList = Raw_rangelist.SelfJoin().getList();
     for(int i=0; i<RangeList.size(); i++){
         String Column = RangeList.get(i).ColumnName;
-        int Low = RangeList.get(i).Lower.intValue();
-        int Up = RangeList.get(i).Upper.intValue();
+        long Low = RangeList.get(i).Lower;
+        long Up = RangeList.get(i).Upper;
 
         for(ColumnChunkMetaData chunk: columns){
             if (chunk.getPath().equals(Column)){
@@ -98,12 +98,14 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
                 Statistics stats = chunk.getStatistics();
                 HistogramStatistics histogram = (HistogramStatistics) stats;
                 if(histogram.isHistogramEnabled()){
-
+                    if(histogram.test(Low,Up))
+                        return true;
                 }
             }
         }
-
     }
+
+    return false;
   }
 
   private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();

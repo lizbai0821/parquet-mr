@@ -195,7 +195,9 @@ public class FloatStatistics extends Statistics<Float> implements BloomFilterSta
     public boolean test(Float value) {
         return bloomFilter.testFloat(value);
     }
-
+    public boolean test(Float value1, Float value2) {
+        return histogram.testFloat(value1, value2);
+    }
     @Override
     public boolean isBloomFilterEnabled() {
         return isBloomFilterEnabled;

@@ -25,7 +25,7 @@ public class InRangeList {
             int start = planText.indexOf("gt(",index);
             int end = planText.indexOf(")", start);
             String Sub = planText.substring(start+3, end-1);
-            this.InRangeList.add(new InRange(Sub.split(",")[0], Integer.valueOf((Sub.split(",")[1])), null));
+            this.InRangeList.add(new InRange(Sub.split(",")[0], Long.valueOf((Sub.split(",")[1])), null));
             index = end;
         }
         return;
@@ -37,7 +37,7 @@ public class InRangeList {
             int start = planText.indexOf("lt(",index);
             int end = planText.indexOf(")", start);
             String Sub = planText.substring(start+3, end-1);
-            InRangeList.add(new InRange(Sub.split(",")[0], null, Integer.valueOf((Sub.split(",")[1]))));
+            InRangeList.add(new InRange(Sub.split(",")[0], null, Long.valueOf((Sub.split(",")[1]))));
             index = end;
         }
         return;

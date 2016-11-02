@@ -3,13 +3,13 @@ package org.apache.parquet.filter2.statisticslevel;
 /**
  * Created by bairan on 1/11/2016.
  */
-public class InRange
+public class InRange   // should be created as an abstract class?
 {
     public String ColumnName;
-    public Integer Lower = null;
-    public Integer Upper = null;
+    public Long Lower = null;
+    public Long Upper = null;
 
-    public InRange (String columnname, Integer lower, Integer upper){
+    public InRange (String columnname, Long lower, Long upper){
         this.ColumnName = columnname;
         this.Lower = lower;
         this.Upper = upper;

@@ -25,17 +25,17 @@ public class ColumnStatisticsOpts {
     BloomFilterOpts.BloomFilterEntry bloomFilterEntry;
     HistogramOpts.HistogramEntry histogramEntry;
 
-    public ColumnStatisticsOpts() {
+    /*public ColumnStatisticsOpts() {
 
-    }
+    }*/
 
     public ColumnStatisticsOpts(BloomFilterOpts.BloomFilterEntry bloomFilterEntry) {
         this.bloomFilterEntry = bloomFilterEntry;
     }
 
-    public ColumnStatisticsOpts(HistogramOpts.HistogramEntry histogramEntry) {
+    /*public ColumnStatisticsOpts(HistogramOpts.HistogramEntry histogramEntry) {
         this.histogramEntry = histogramEntry;
-    }
+    }*/
 
     public ColumnStatisticsOpts(BloomFilterOpts.BloomFilterEntry bloomFilterEntry, HistogramOpts.HistogramEntry histogramEntry) {
         this.bloomFilterEntry = bloomFilterEntry;

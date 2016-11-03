@@ -23,20 +23,19 @@ package org.apache.parquet.column.statistics.histogram;
  */
 public class Histogram {
 
-    protected long[] buckets;
     protected int bucketsCount;
     protected long min;
     protected long max;
 
-
-    protected int[] counters;
+    protected long[] buckets;
+    protected long[] counters;
 
     public Histogram(HistogramOpts.HistogramEntry entry) {
         this.bucketsCount = entry.getBucketCount();
         this.min = entry.getMin();
         this.max = entry.getMax();
         this.buckets = entry.getEvenBuckets();
-        this.counters = new int[bucketsCount];
+        this.counters = new long[bucketsCount];
     }
 
 
@@ -59,7 +58,7 @@ public class Histogram {
 
     public void fastBucketAddFunction(long value) {
         if (value >= min && value <= max) {
-            int bucketNumber = (int) (((value - min) / (max - min)) * bucketsCount); // double is needed?
+            int bucketNumber = (int) (((double)(value - min) / (max - min)) * bucketsCount); // double is needed?
             bucketNumber = Math.min(bucketNumber, buckets.length - 1);
             counters[bucketNumber]++;
         }
@@ -91,8 +90,9 @@ public class Histogram {
         bucket_up = Math.min(bucket_up, buckets.length - 1);
 
         while(bucket_low <= bucket_up){
-            if(counters[bucket_low]!=0)
+            if(counters[bucket_low] != 0)
                 return true;  // buckets not empty
+            bucket_low++;
         }
         return false;
     }

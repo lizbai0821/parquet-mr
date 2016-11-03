@@ -43,12 +43,16 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.parquet.CorruptStatistics;
 import org.apache.parquet.Log;
+//import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.format.PageEncodingStats;
 import org.apache.parquet.hadoop.metadata.ColumnPath;
 import org.apache.parquet.column.statistics.ColumnStatisticsOpts;
 import org.apache.parquet.column.statistics.StatisticsOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.format.Histogram;
 import org.apache.parquet.format.BloomFilter;
 import org.apache.parquet.format.BloomFilterStrategy;
 import org.apache.parquet.format.ColumnChunk;
@@ -309,6 +313,7 @@ public class ParquetMetadataConverter {
         stats.setMax(statistics.getMaxBytes());
         stats.setMin(statistics.getMinBytes());
         setBloomFilter(stats, statistics);
+        setHistogram(stats, statistics);
       }
     }
     return stats;
@@ -376,15 +381,45 @@ public class ParquetMetadataConverter {
     }
   }
 
+
+  private static void setHistogram(Statistics stats, org.apache.parquet.column.statistics.Statistics statistics){
+    if (!(statistics instanceof HistogramStatistics) || !((HistogramStatistics) statistics)
+            .isHistogramEnabled()) {
+      stats.setHistogram(null);
+    } else {
+      HistogramStatistics hisStatistics = (HistogramStatistics) statistics;
+      Histogram hisStats =
+              new Histogram(hisStatistics.getHistogram().getmin(), hisStatistics.getHistogram().getmax(),
+                      hisStatistics.getHistogram().getbucketsCount(), serializeLongArray(hisStatistics.getHistogram().getbuckets()),
+                      serializeLongArray(hisStatistics.getHistogram().getcounters()));
+      stats.setHistogram(hisStats);
+    }
+  }
+
   public static org.apache.parquet.column.statistics.Statistics fromParquetStatistics(
-      String createdBy,
-      Statistics statistics,
-      PrimitiveTypeName type,
-      boolean includeBF) {
+          String createdBy,
+          Statistics statistics,
+          PrimitiveTypeName type,
+          boolean includeBF) {
     if (includeBF) {
-      return fromParquetStatisticsWithBF(createdBy, statistics, type);
+      return fromParquetStatisticsWithBF(createdBy, statistics, type); // why to call same functions in both conditions?
     } else {
       return fromParquetStatisticsWithBF(createdBy, statistics, type);
+    }
+  }
+
+  public static org.apache.parquet.column.statistics.Statistics fromParquetStatistics(
+          String createdBy,
+          Statistics statistics,
+          PrimitiveTypeName type,
+          boolean includeBF, boolean includeHis) {
+    if (includeBF && !includeHis) {
+      return fromParquetStatisticsWithBF(createdBy, statistics, type);
+    } else if(includeBF && includeHis) {
+      return fromParquetStatisticsWithBH(createdBy, statistics, type);
+    }
+    else{
+      return fromParquetStatistics(createdBy, statistics,type);
     }
   }
 
@@ -434,6 +469,52 @@ public class ParquetMetadataConverter {
         ((BloomFilterStatistics) stats).getBloomFilter().setBitSet(
             deserializeLongArray(ByteBuffer.wrap(statistics.getBloom_filter().getBitSet())));
       }
+      stats.setNumNulls(statistics.null_count);
+    } else {
+      stats = org.apache.parquet.column.statistics.Statistics.getStatsBasedOnType(type, null);
+    }
+    return stats;
+  }
+
+  // get Parquet Statistics of [ Bloom filter + Histogram ] together
+  public static org.apache.parquet.column.statistics.Statistics fromParquetStatisticsWithBH(
+          String createdBy,
+          Statistics statistics,
+          PrimitiveTypeName type) {
+    org.apache.parquet.column.statistics.Statistics stats;
+    // If there was no statistics written to the footer, create an empty Statistics object and return
+    if (statistics != null && !CorruptStatistics.shouldIgnoreStatistics(createdBy, type)) {
+      BloomFilterOpts.BloomFilterEntry opts = null;
+      HistogramOpts.HistogramEntry opts2 = null;
+
+      if (statistics.getBloom_filter() != null) {
+        opts = new BloomFilterOpts.BloomFilterEntry(statistics.getBloom_filter().getNumBits(),
+                statistics.getBloom_filter().getNumHashFunctions());
+      }
+
+      if(statistics.getHistogram() != null){
+        opts2 = new HistogramOpts.HistogramEntry(statistics.getHistogram().getMin(), statistics.getHistogram().getMax(),statistics.getHistogram().getBucketCount());
+      }
+      // create stats object based on the column type
+      stats =
+              org.apache.parquet.column.statistics.Statistics.getStatsBasedOnType(type,
+                      new ColumnStatisticsOpts(opts, opts2));
+
+      if (statistics.isSetMax() && statistics.isSetMin()) {
+        stats.setMinMaxFromBytes(statistics.min.array(), statistics.max.array());
+      }
+
+      // update data for bloom filter statistics
+      if (statistics.getBloom_filter()!=null && stats instanceof BloomFilterStatistics) {
+        ((BloomFilterStatistics) stats).getBloomFilter().setBitSet(
+                deserializeLongArray(ByteBuffer.wrap(statistics.getBloom_filter().getBitSet())));  // why only consider get the bit set here?
+      }
+
+      if (statistics.getHistogram()!=null && stats instanceof HistogramStatistics) {
+        ((HistogramStatistics) stats).
+                getHistogram().setCounters(deserializeLongArray(ByteBuffer.wrap(statistics.getHistogram().getCounters())));  // ...
+      }
+
       stats.setNumNulls(statistics.null_count);
     } else {
       stats = org.apache.parquet.column.statistics.Statistics.getStatsBasedOnType(type, null);
@@ -787,6 +868,38 @@ public class ParquetMetadataConverter {
     return parquetMetadata;
   }
 
+  public ParquetMetadata readParquetMetadata(
+          final InputStream from,
+          MetadataFilter filter,
+          boolean includeBF, boolean includeHis) throws IOException {
+    FileMetaData fileMetaData = filter.accept(
+            new MetadataFilterVisitor<FileMetaData, IOException>() {
+              @Override
+              public FileMetaData visit(NoFilter filter) throws IOException {
+                return readFileMetaData(from);
+              }
+
+              @Override
+              public FileMetaData visit(SkipMetadataFilter filter) throws IOException {
+                return readFileMetaData(from, true);
+              }
+
+              @Override
+              public FileMetaData visit(OffsetMetadataFilter filter) throws IOException {
+                return filterFileMetaDataByStart(readFileMetaData(from), filter);
+              }
+
+              @Override
+              public FileMetaData visit(RangeMetadataFilter filter) throws IOException {
+                return filterFileMetaDataByMidpoint(readFileMetaData(from), filter);
+              }
+            });
+    if (Log.DEBUG) LOG.debug(fileMetaData);
+    ParquetMetadata parquetMetadata = fromParquetMetadata(fileMetaData, includeBF, includeHis);
+    if (Log.DEBUG) LOG.debug(ParquetMetadata.toPrettyJSON(parquetMetadata));
+    return parquetMetadata;
+  }
+
   public ParquetMetadata fromParquetMetadata(FileMetaData parquetMetadata) throws IOException {
     return fromParquetMetadata(parquetMetadata, false);
   }
@@ -846,6 +959,63 @@ public class ParquetMetadataConverter {
     return new ParquetMetadata(
         new org.apache.parquet.hadoop.metadata.FileMetaData(messageType, keyValueMetaData, parquetMetadata.getCreated_by()),
         blocks);
+  }
+
+  public ParquetMetadata fromParquetMetadata(
+          FileMetaData parquetMetadata,
+          boolean includeBF, boolean includeHis) throws IOException {
+    MessageType messageType = fromParquetSchema(parquetMetadata.getSchema());
+    List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
+    List<RowGroup> row_groups = parquetMetadata.getRow_groups();
+    if (row_groups != null) {
+      for (RowGroup rowGroup : row_groups) {
+        BlockMetaData blockMetaData = new BlockMetaData();
+        blockMetaData.setRowCount(rowGroup.getNum_rows());
+        blockMetaData.setTotalByteSize(rowGroup.getTotal_byte_size());
+        List<ColumnChunk> columns = rowGroup.getColumns();
+        String filePath = columns.get(0).getFile_path();
+        for (ColumnChunk columnChunk : columns) {
+          if ((filePath == null && columnChunk.getFile_path() != null)
+                  || (filePath != null && !filePath.equals(columnChunk.getFile_path()))) {
+            throw new ParquetDecodingException("all column chunks of the same row group must be in the same file for now");
+          }
+          ColumnMetaData metaData = columnChunk.meta_data;
+          ColumnPath path = getPath(metaData);
+          ColumnChunkMetaData column = ColumnChunkMetaData.get(
+                  path,
+                  messageType.getType(path.toArray()).asPrimitiveType().getPrimitiveTypeName(),
+                  CompressionCodecName.fromParquet(metaData.codec),
+                  convertEncodingStats(metaData.getEncoding_stats()),
+                  fromFormatEncodings(metaData.encodings),
+                  fromParquetStatistics(
+                          parquetMetadata.created_by,
+                          metaData.statistics,
+                          messageType.getType(path.toArray()).asPrimitiveType().getPrimitiveTypeName(),
+                          includeBF, includeHis),
+                  metaData.data_page_offset,
+                  metaData.dictionary_page_offset,
+                  metaData.num_values,
+                  metaData.total_compressed_size,
+                  metaData.total_uncompressed_size);
+          // TODO
+          // index_page_offset
+          // key_value_metadata
+          blockMetaData.addColumn(column);
+        }
+        blockMetaData.setPath(filePath);
+        blocks.add(blockMetaData);
+      }
+    }
+    Map<String, String> keyValueMetaData = new HashMap<String, String>();
+    List<KeyValue> key_value_metadata = parquetMetadata.getKey_value_metadata();
+    if (key_value_metadata != null) {
+      for (KeyValue keyValue : key_value_metadata) {
+        keyValueMetaData.put(keyValue.key, keyValue.value);
+      }
+    }
+    return new ParquetMetadata(
+            new org.apache.parquet.hadoop.metadata.FileMetaData(messageType, keyValueMetaData, parquetMetadata.getCreated_by()),
+            blocks);
   }
 
   private static ColumnPath getPath(ColumnMetaData metaData) {

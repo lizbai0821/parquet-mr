@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class contains the otions required for constructing a bloom filter including the number of bits and the number of hash functions.
+ * This class contains the otions required for constructing a histogram including the its relevant parameters
  */
 public class HistogramOpts {
 
@@ -31,19 +31,19 @@ public class HistogramOpts {
 
     public static class HistogramEntry {
 
-        private long max;
         private long min;
+        private long max;
         private int bucketCount;
         private long[] evenBuckets;
 
-        public HistogramEntry(long max, long min, int count) {
-            this.max = max;
+        public HistogramEntry(long min, long max,int bucketcount) {
             this.min = min;
-            this.bucketCount = count;
+            this.max = max;
+            this.bucketCount = bucketcount;
 
-            evenBuckets = new long[count + 1];
-            long span = (max - min) / count;
-            for (int i = 0; i <= count; i++) {
+            evenBuckets = new long[bucketcount + 1];
+            long span = (max - min) / bucketcount;
+            for (int i = 0; i <= bucketcount; i++) {
                 evenBuckets[i] = min + i * span;
             }
         }

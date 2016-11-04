@@ -161,7 +161,10 @@ public class IntStatistics extends Statistics<Integer> implements BloomFilterSta
     }
 
     public void add(Integer value) {
-        bloomFilter.addInteger(value);
+        if (isBloomFilterEnabled)
+            bloomFilter.addInteger(value);
+        if (isHistogramEnabled)
+            histogram.addInteger(value);
     }
 
     @Override

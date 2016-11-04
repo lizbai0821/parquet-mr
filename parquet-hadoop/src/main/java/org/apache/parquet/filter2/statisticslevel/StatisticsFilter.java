@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.parquet.column.statistics.Statistics;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
 import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.hadoop.metadata.ColumnPath;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
@@ -52,360 +53,363 @@ import static org.apache.parquet.Preconditions.checkNotNull;
 /**
  * Applies a {@link org.apache.parquet.filter2.predicate.FilterPredicate} to statistics about a group of
  * records.
- *
+ * <p>
  * Note: the supplied predicate must not contain any instances of the not() operator as this is not
  * supported by this filter.
- *
+ * <p>
  * the supplied predicate should first be run through {@link org.apache.parquet.filter2.predicate.LogicalInverseRewriter} to rewrite it
  * in a form that doesn't make use of the not() operator.
- *
+ * <p>
  * the supplied predicate should also have already been run through
  * {@link org.apache.parquet.filter2.predicate.SchemaCompatibilityValidator}
  * to make sure it is compatible with the schema of this file.
- *
+ * <p>
  * Returns true if all the records represented by the statistics in the provided column metadata can be dropped.
- *         false otherwise (including when it is not known, which is often the case).
+ * false otherwise (including when it is not known, which is often the case).
  */
 // TODO: this belongs in the parquet-column project, but some of the classes here need to be moved too
 // TODO: (https://issues.apache.org/jira/browse/PARQUET-38)
 public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
 
-  private static final boolean BLOCK_MIGHT_MATCH = false;
-  private static final boolean BLOCK_CANNOT_MATCH = true;
-  private Logger logger = LoggerFactory.getLogger(getClass());
+    private static final boolean BLOCK_MIGHT_MATCH = false;
+    private static final boolean BLOCK_CANNOT_MATCH = true;
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
-  public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
-    checkNotNull(pred, "pred");
-    checkNotNull(columns, "columns");
-    boolean judge = pred.accept(new StatisticsFilter(columns));
-    if(judge){
-        return true;
+    public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
+        checkNotNull(pred, "pred");
+        checkNotNull(columns, "columns");
+        boolean drop = pred.accept(new StatisticsFilter(columns));
+        if (drop) {
+            return true;
+        }
+
+        //utilize histogram to decide
+        String planText = pred.toString();
+        FilteredColumnRange filteredColumnRange = new FilteredColumnRange(planText);
+        Map<String, InRange> columnRangeMap = filteredColumnRange.getColumnRangeMap();
+        if (columnRangeMap.size() == 0)
+            return false;
+
+        //test whether the range hit histogram
+        boolean hit = false;
+        for (ColumnChunkMetaData chunk : columns) {
+            String columnName = chunk.getPath().toString().substring(1, chunk.getPath().toString().length() - 1);
+            InRange inRange = columnRangeMap.get(columnName);
+            if (inRange == null)
+                continue;
+            Statistics stats = chunk.getStatistics();
+            if (stats instanceof HistogramStatistics) {
+                HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
+                if (!histogramStatistics.isHistogramEnabled())
+                    continue;
+                if (histogramStatistics.test(inRange.getLower().intValue(), inRange.getUpper().intValue())) {
+                    hit = true;
+                    break;
+                }
+
+            }
+        }
+        return hit == true ? false : true;
     }
 
-    //else: utilize histogram
-    And doublePlan = new And(pred, pred);
-    String planText = doublePlan.toString();
-    InRangeList Raw_rangelist = new InRangeList(planText);
-    ArrayList<InRange>  RangeList = Raw_rangelist.SelfJoin().getList();
-    for(int i=0; i<RangeList.size(); i++){
-        String Column = RangeList.get(i).ColumnName;
-        long Low = RangeList.get(i).Lower;
-        long Up = RangeList.get(i).Upper;
+    private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();
 
-        for(ColumnChunkMetaData chunk: columns){
-            if (chunk.getPath().equals(Column)){
-                // call histogram here
-                Statistics stats = chunk.getStatistics();
-                HistogramStatistics histogram = (HistogramStatistics) stats;
-                if(histogram.isHistogramEnabled()){
-                    if(histogram.test(Low,Up))
-                        return true;
-                }
-            }
+    private StatisticsFilter(List<ColumnChunkMetaData> columnsList) {
+        for (ColumnChunkMetaData chunk : columnsList) {
+            columns.put(chunk.getPath(), chunk);
         }
     }
 
-    return false;
-  }
-
-  private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();
-
-  private StatisticsFilter(List<ColumnChunkMetaData> columnsList) {
-    for (ColumnChunkMetaData chunk : columnsList) {
-      columns.put(chunk.getPath(), chunk);
-    }
-  }
-
-  private ColumnChunkMetaData getColumnChunk(ColumnPath columnPath) {
-    return columns.get(columnPath);
-  }
-
-  // is this column chunk composed entirely of nulls?
-  // assumes the column chunk's statistics is not empty
-  private boolean isAllNulls(ColumnChunkMetaData column) {
-    return column.getStatistics().getNumNulls() == column.getValueCount();
-  }
-
-  // are there any nulls in this column chunk?
-  // assumes the column chunk's statistics is not empty
-  private boolean hasNulls(ColumnChunkMetaData column) {
-    return column.getStatistics().getNumNulls() > 0;
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T extends Comparable<T>> Boolean visit(Eq<T> eq) {
-    logger.info("Check equal now");
-    Column<T> filterColumn = eq.getColumn();
-    ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
-
-    T value = eq.getValue();
-
-    if (meta == null) {
-      // the column isn't in this file so all values are null.
-      if (value != null) {
-        // non-null is never null
-        return BLOCK_CANNOT_MATCH;
-      }
-      return BLOCK_MIGHT_MATCH;
+    private ColumnChunkMetaData getColumnChunk(ColumnPath columnPath) {
+        return columns.get(columnPath);
     }
 
-    Statistics<T> stats = meta.getStatistics();
-
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return BLOCK_MIGHT_MATCH;
+    // is this column chunk composed entirely of nulls?
+    // assumes the column chunk's statistics is not empty
+    private boolean isAllNulls(ColumnChunkMetaData column) {
+        return column.getStatistics().getNumNulls() == column.getValueCount();
     }
 
-    if (value == null) {
-      // we are looking for records where v eq(null)
-      // so drop if there are no nulls in this chunk
-      return !hasNulls(meta);
+    // are there any nulls in this column chunk?
+    // assumes the column chunk's statistics is not empty
+    private boolean hasNulls(ColumnChunkMetaData column) {
+        return column.getStatistics().getNumNulls() > 0;
     }
 
-    if (isAllNulls(meta)) {
-      // we are looking for records where v eq(someNonNull)
-      // and this is a column of all nulls, so drop it
-      return BLOCK_CANNOT_MATCH;
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Boolean visit(Eq<T> eq) {
+        logger.info("Check equal now");
+        Column<T> filterColumn = eq.getColumn();
+        ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
+
+        T value = eq.getValue();
+
+        if (meta == null) {
+            // the column isn't in this file so all values are null.
+            if (value != null) {
+                // non-null is never null
+                return BLOCK_CANNOT_MATCH;
+            }
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        Statistics<T> stats = meta.getStatistics();
+
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        if (value == null) {
+            // we are looking for records where v eq(null)
+            // so drop if there are no nulls in this chunk
+            return !hasNulls(meta);
+        }
+
+        if (isAllNulls(meta)) {
+            // we are looking for records where v eq(someNonNull)
+            // and this is a column of all nulls, so drop it
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        // drop if value < min || value > max
+        boolean isWithinRange =
+                value.compareTo(stats.genericGetMin()) < 0 || value.compareTo(stats.genericGetMax()) > 0;
+        // drop it if not hit the bloom filter
+        if (isWithinRange || stats instanceof BloomFilterStatistics) {
+            BloomFilterStatistics bfStats = (BloomFilterStatistics) stats;
+            if (bfStats.isBloomFilterEnabled()) {
+                logger.info("Bloom filter is enabled ");
+                return isWithinRange || !bfStats.test(value);
+            }
+        }
+        return isWithinRange;
     }
 
-    // drop if value < min || value > max
-    boolean isWithinRange =
-        value.compareTo(stats.genericGetMin()) < 0 || value.compareTo(stats.genericGetMax()) > 0;
-    // drop it if not hit the bloom filter
-    if (isWithinRange || stats instanceof BloomFilterStatistics) {
-      BloomFilterStatistics bfStats = (BloomFilterStatistics) stats;
-      if (bfStats.isBloomFilterEnabled()) {
-        logger.info("Bloom filter is enabled ");
-        return isWithinRange || !bfStats.test(value);
-      }
-    }
-    return isWithinRange;
-  }
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Boolean visit(NotEq<T> notEq) {
+        Column<T> filterColumn = notEq.getColumn();
+        ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T extends Comparable<T>> Boolean visit(NotEq<T> notEq) {
-    Column<T> filterColumn = notEq.getColumn();
-    ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
+        T value = notEq.getValue();
 
-    T value = notEq.getValue();
+        if (meta == null) {
+            if (value == null) {
+                // null is always equal to null
+                return BLOCK_CANNOT_MATCH;
+            }
+            return BLOCK_MIGHT_MATCH;
+        }
 
-    if (meta == null) {
-      if (value == null) {
-        // null is always equal to null
-        return BLOCK_CANNOT_MATCH;
-      }
-      return BLOCK_MIGHT_MATCH;
-    }
+        Statistics<T> stats = meta.getStatistics();
 
-    Statistics<T> stats = meta.getStatistics();
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return BLOCK_MIGHT_MATCH;
+        }
 
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return BLOCK_MIGHT_MATCH;
-    }
+        if (value == null) {
+            // we are looking for records where v notEq(null)
+            // so, if this is a column of all nulls, we can drop it
+            return isAllNulls(meta);
+        }
 
-    if (value == null) {
-      // we are looking for records where v notEq(null)
-      // so, if this is a column of all nulls, we can drop it
-      return isAllNulls(meta);
+        if (hasNulls(meta)) {
+            // we are looking for records where v notEq(someNonNull)
+            // but this chunk contains nulls, we cannot drop it
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        // drop if this is a column where min = max = value
+        return value.compareTo(stats.genericGetMin()) == 0 && value.compareTo(stats.genericGetMax()) == 0;
     }
 
-    if (hasNulls(meta)) {
-      // we are looking for records where v notEq(someNonNull)
-      // but this chunk contains nulls, we cannot drop it
-      return BLOCK_MIGHT_MATCH;
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Boolean visit(Lt<T> lt) {
+        Column<T> filterColumn = lt.getColumn();
+        ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
+
+        if (meta == null) {
+            // the column is missing and always null, which is never less than a
+            // value. for all x, null is never < x.
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        Statistics<T> stats = meta.getStatistics();
+
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        if (isAllNulls(meta)) {
+            // we are looking for records where v < someValue
+            // this chunk is all nulls, so we can drop it
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        T value = lt.getValue();
+
+        // drop if value <= min
+        return value.compareTo(stats.genericGetMin()) <= 0;
     }
 
-    // drop if this is a column where min = max = value
-    return value.compareTo(stats.genericGetMin()) == 0 && value.compareTo(stats.genericGetMax()) == 0;
-  }
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Boolean visit(LtEq<T> ltEq) {
+        Column<T> filterColumn = ltEq.getColumn();
+        ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T extends Comparable<T>> Boolean visit(Lt<T> lt) {
-    Column<T> filterColumn = lt.getColumn();
-    ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
+        if (meta == null) {
+            // the column is missing and always null, which is never less than or
+            // equal to a value. for all x, null is never <= x.
+            return BLOCK_CANNOT_MATCH;
+        }
 
-    if (meta == null) {
-      // the column is missing and always null, which is never less than a
-      // value. for all x, null is never < x.
-      return BLOCK_CANNOT_MATCH;
+        Statistics<T> stats = meta.getStatistics();
+
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        if (isAllNulls(meta)) {
+            // we are looking for records where v <= someValue
+            // this chunk is all nulls, so we can drop it
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        T value = ltEq.getValue();
+
+        // drop if value < min
+        return value.compareTo(stats.genericGetMin()) < 0;
     }
 
-    Statistics<T> stats = meta.getStatistics();
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Boolean visit(Gt<T> gt) {
+        Column<T> filterColumn = gt.getColumn();
+        ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
 
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return BLOCK_MIGHT_MATCH;
+        if (meta == null) {
+            // the column is missing and always null, which is never greater than a
+            // value. for all x, null is never > x.
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        Statistics<T> stats = meta.getStatistics();
+
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        if (isAllNulls(meta)) {
+            // we are looking for records where v > someValue
+            // this chunk is all nulls, so we can drop it
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        T value = gt.getValue();
+
+        // drop if value >= max
+        return value.compareTo(stats.genericGetMax()) >= 0;
     }
 
-    if (isAllNulls(meta)) {
-      // we are looking for records where v < someValue
-      // this chunk is all nulls, so we can drop it
-      return BLOCK_CANNOT_MATCH;
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T extends Comparable<T>> Boolean visit(GtEq<T> gtEq) {
+        Column<T> filterColumn = gtEq.getColumn();
+        ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
+
+        if (meta == null) {
+            // the column is missing and always null, which is never greater than or
+            // equal to a value. for all x, null is never >= x.
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        Statistics<T> stats = meta.getStatistics();
+
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return BLOCK_MIGHT_MATCH;
+        }
+
+        if (isAllNulls(meta)) {
+            // we are looking for records where v >= someValue
+            // this chunk is all nulls, so we can drop it
+            return BLOCK_CANNOT_MATCH;
+        }
+
+        T value = gtEq.getValue();
+
+        // drop if value >= max
+        return value.compareTo(stats.genericGetMax()) > 0;
     }
 
-    T value = lt.getValue();
-
-    // drop if value <= min
-    return  value.compareTo(stats.genericGetMin()) <= 0;
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T extends Comparable<T>> Boolean visit(LtEq<T> ltEq) {
-    Column<T> filterColumn = ltEq.getColumn();
-    ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
-
-    if (meta == null) {
-      // the column is missing and always null, which is never less than or
-      // equal to a value. for all x, null is never <= x.
-      return BLOCK_CANNOT_MATCH;
+    @Override
+    public Boolean visit(And and) {
+        // seems unintuitive to put an || not an && here but we can
+        // drop a chunk of records if we know that either the left or
+        // the right predicate agrees that no matter what we don't
+        // need this chunk.
+        return and.getLeft().accept(this) || and.getRight().accept(this);
     }
 
-    Statistics<T> stats = meta.getStatistics();
-
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return BLOCK_MIGHT_MATCH;
+    @Override
+    public Boolean visit(Or or) {
+        // seems unintuitive to put an && not an || here
+        // but we can only drop a chunk of records if we know that
+        // both the left and right predicates agree that no matter what
+        // we don't need this chunk.
+        return or.getLeft().accept(this) && or.getRight().accept(this);
     }
 
-    if (isAllNulls(meta)) {
-      // we are looking for records where v <= someValue
-      // this chunk is all nulls, so we can drop it
-      return BLOCK_CANNOT_MATCH;
+    @Override
+    public Boolean visit(Not not) {
+        throw new IllegalArgumentException(
+                "This predicate contains a not! Did you forget to run this predicate through LogicalInverseRewriter? " + not);
     }
 
-    T value = ltEq.getValue();
+    private <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(UserDefined<T, U> ud, boolean inverted) {
+        Column<T> filterColumn = ud.getColumn();
+        ColumnChunkMetaData columnChunk = getColumnChunk(filterColumn.getColumnPath());
+        U udp = ud.getUserDefinedPredicate();
+        Statistics<T> stats = columnChunk.getStatistics();
 
-    // drop if value < min
-    return value.compareTo(stats.genericGetMin()) < 0;
-  }
+        if (stats.isEmpty()) {
+            // we have no statistics available, we cannot drop any chunks
+            return false;
+        }
 
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T extends Comparable<T>> Boolean visit(Gt<T> gt) {
-    Column<T> filterColumn = gt.getColumn();
-    ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
+        if (isAllNulls(columnChunk)) {
+            // there is no min max, there is nothing
+            // else we can say about this chunk, we
+            // cannot drop it.
+            return false;
+        }
 
-    if (meta == null) {
-      // the column is missing and always null, which is never greater than a
-      // value. for all x, null is never > x.
-      return BLOCK_CANNOT_MATCH;
+        org.apache.parquet.filter2.predicate.Statistics<T> udpStats =
+                new org.apache.parquet.filter2.predicate.Statistics<T>(stats.genericGetMin(), stats.genericGetMax());
+
+        if (inverted) {
+            return udp.inverseCanDrop(udpStats);
+        } else {
+            return udp.canDrop(udpStats);
+        }
     }
 
-    Statistics<T> stats = meta.getStatistics();
-
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return BLOCK_MIGHT_MATCH;
+    @Override
+    public <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(UserDefined<T, U> ud) {
+        return visit(ud, false);
     }
 
-    if (isAllNulls(meta)) {
-      // we are looking for records where v > someValue
-      // this chunk is all nulls, so we can drop it
-      return BLOCK_CANNOT_MATCH;
+    @Override
+    public <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(LogicalNotUserDefined<T, U> lnud) {
+        return visit(lnud.getUserDefined(), true);
     }
-
-    T value = gt.getValue();
-
-    // drop if value >= max
-    return value.compareTo(stats.genericGetMax()) >= 0;
-  }
-
-  @Override
-  @SuppressWarnings("unchecked")
-  public <T extends Comparable<T>> Boolean visit(GtEq<T> gtEq) {
-    Column<T> filterColumn = gtEq.getColumn();
-    ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
-
-    if (meta == null) {
-      // the column is missing and always null, which is never greater than or
-      // equal to a value. for all x, null is never >= x.
-      return BLOCK_CANNOT_MATCH;
-    }
-
-    Statistics<T> stats = meta.getStatistics();
-
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return BLOCK_MIGHT_MATCH;
-    }
-
-    if (isAllNulls(meta)) {
-      // we are looking for records where v >= someValue
-      // this chunk is all nulls, so we can drop it
-      return BLOCK_CANNOT_MATCH;
-    }
-
-    T value = gtEq.getValue();
-
-    // drop if value >= max
-    return value.compareTo(stats.genericGetMax()) > 0;
-  }
-
-  @Override
-  public Boolean visit(And and) {
-    // seems unintuitive to put an || not an && here but we can
-    // drop a chunk of records if we know that either the left or
-    // the right predicate agrees that no matter what we don't
-    // need this chunk.
-    return and.getLeft().accept(this) || and.getRight().accept(this);
-  }
-
-  @Override
-  public Boolean visit(Or or) {
-    // seems unintuitive to put an && not an || here
-    // but we can only drop a chunk of records if we know that
-    // both the left and right predicates agree that no matter what
-    // we don't need this chunk.
-    return or.getLeft().accept(this) && or.getRight().accept(this);
-  }
-
-  @Override
-  public Boolean visit(Not not) {
-    throw new IllegalArgumentException(
-        "This predicate contains a not! Did you forget to run this predicate through LogicalInverseRewriter? " + not);
-  }
-
-  private <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(UserDefined<T, U> ud, boolean inverted) {
-    Column<T> filterColumn = ud.getColumn();
-    ColumnChunkMetaData columnChunk = getColumnChunk(filterColumn.getColumnPath());
-    U udp = ud.getUserDefinedPredicate();
-    Statistics<T> stats = columnChunk.getStatistics();
-
-    if (stats.isEmpty()) {
-      // we have no statistics available, we cannot drop any chunks
-      return false;
-    }
-
-    if (isAllNulls(columnChunk)) {
-      // there is no min max, there is nothing
-      // else we can say about this chunk, we
-      // cannot drop it.
-      return false;
-    }
-
-    org.apache.parquet.filter2.predicate.Statistics<T> udpStats =
-        new org.apache.parquet.filter2.predicate.Statistics<T>(stats.genericGetMin(), stats.genericGetMax());
-
-    if (inverted) {
-      return udp.inverseCanDrop(udpStats);
-    } else {
-      return udp.canDrop(udpStats);
-    }
-  }
-
-  @Override
-  public <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(UserDefined<T, U> ud) {
-    return visit(ud, false);
-  }
-
-  @Override
-  public <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(LogicalNotUserDefined<T, U> lnud) {
-    return visit(lnud.getUserDefined(), true);
-  }
 
 }

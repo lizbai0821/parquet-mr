@@ -175,7 +175,10 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
     }
 
     public void add(Double value) {
-        bloomFilter.addDouble(value);
+        if (isBloomFilterEnabled)
+            bloomFilter.addDouble(value);
+        if (isHistogramEnabled)
+            histogram.addDouble(value);
     }
 
     @Override

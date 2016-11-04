@@ -24,6 +24,7 @@ package org.apache.parquet.column.statistics.histogram;
 public class Histogram {
 
 
+
     protected long min; // lower bound
     protected long max; // upper bound
     protected int bucketsCount; // # of buckets
@@ -63,7 +64,7 @@ public class Histogram {
     public void fastBucketAddFunction(long value) {
         if (value >= min && value <= max) {
             int bucketNumber = (int) (((double)(value - min) / (max - min)) * bucketsCount); // double is needed?
-            //bucketNumber = Math.min(bucketNumber, buckets.length - 1);
+            bucketNumber = Math.min(bucketNumber, buckets.length - 1);
             counters[bucketNumber]++;
         }
     }
@@ -100,7 +101,7 @@ public class Histogram {
         //bucket_up = Math.min(bucket_up, buckets.length - 1);
 
         while(bucket_low <= bucket_up){
-            if(counters[bucket_low]!=0)
+            if(counters[bucket_low] != 0)
                 return true;  // buckets not empty
             bucket_low++;
         }

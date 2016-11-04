@@ -447,7 +447,7 @@ public class ParquetFileReader implements Closeable {
   }
 
   /**
-   * @deprecated use {@link ParquetFileReader#readFooter(Configuration, FileStatus,
+   * @deprecated use {@link ParquetFileReader readFooter(Configuration, FileStatus,
    * MetadataFilter, includeBF)}
    */
   @Deprecated

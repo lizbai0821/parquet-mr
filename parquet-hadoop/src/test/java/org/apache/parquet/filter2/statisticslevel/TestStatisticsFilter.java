@@ -100,7 +100,7 @@ public class TestStatisticsFilter {
   }
 
   private static final List<ColumnChunkMetaData> columnMetas = Arrays.asList(
-      getIntColumnMeta(intStats, 177L),
+      getIntColumnMeta(intStats, 178L),
       getDoubleColumnMeta(doubleStats, 177L));
 
   private static final List<ColumnChunkMetaData> nullColumnMetas = Arrays.asList(

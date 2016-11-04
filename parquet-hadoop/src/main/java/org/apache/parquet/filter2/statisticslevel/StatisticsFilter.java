@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.apache.parquet.column.statistics.Statistics;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.Histogram;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.hadoop.metadata.ColumnPath;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
@@ -76,20 +78,23 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
     public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
         checkNotNull(pred, "pred");
         checkNotNull(columns, "columns");
-        boolean judge = pred.accept(new StatisticsFilter(columns));
-        if (judge) {
+        boolean drop = pred.accept(new StatisticsFilter(columns));
+        if (drop) {
             return true;
         }
 
-        //else: utilize histogram
-        And doublePlan = new And(pred, pred);
-        String planText = doublePlan.toString();
+        //utilize histogram to decide
+        String planText = pred.toString();
         FilteredColumnRange filteredColumnRange = new FilteredColumnRange(planText);
+        Map<String, InRange> columnRangeMap = filteredColumnRange.getColumnRangeMap();
+        if (columnRangeMap.size() == 0)
+            return false;
 
-
+        //test whether the range hit histogram
+        boolean hit = false;
         for (ColumnChunkMetaData chunk : columns) {
-            Map<String, InRange> columnRangeMap = filteredColumnRange.getColumnRangeMap();
-            InRange inRange = columnRangeMap.get(chunk.getPath().toString());
+            String columnName = chunk.getPath().toString().substring(1, chunk.getPath().toString().length() - 1);
+            InRange inRange = columnRangeMap.get(columnName);
             if (inRange == null)
                 continue;
             Statistics stats = chunk.getStatistics();
@@ -97,11 +102,14 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
                 HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
                 if (!histogramStatistics.isHistogramEnabled())
                     continue;
-                if (histogramStatistics.test(inRange.getLower(), inRange.getUpper()))
-                    return true;
+                if (histogramStatistics.test(inRange.getLower().intValue(), inRange.getUpper().intValue())) {
+                    hit = true;
+                    break;
+                }
+
             }
         }
-        return false;
+        return hit == true ? false : true;
     }
 
     private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();

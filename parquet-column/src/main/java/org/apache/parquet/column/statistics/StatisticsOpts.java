@@ -54,7 +54,7 @@ public class StatisticsOpts {
             bloomFilterEntryMap = bloomFilterOpts.getFilterEntryList();
             keySet.addAll(bloomFilterEntryMap.keySet());
         }
-        if (histogramEntryMap != null) {
+        if (histogramOpts != null) {
             histogramEntryMap = histogramOpts.getFilterEntryList();
             keySet.addAll(histogramEntryMap.keySet());
         }

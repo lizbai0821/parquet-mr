@@ -1,9 +1,6 @@
 package org.apache.parquet.filter2.statisticslevel;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by bairan on 1/11/2016.
@@ -24,41 +21,42 @@ public class FilteredColumnRange {
 
     public void insertRange(String planText) {
 
-        List<String> columnNameList = new ArrayList<>();
+        Set<String> columnNameSet = new HashSet<>();
         //find all gt
         int index = 0;
         while (index < planText.length()) {
             int start = planText.indexOf("gt(", index);
             if (start < 0)
-                return;
+                break;
             int end = planText.indexOf(")", start);
-            String[] columnAndValue = planText.substring(start + 3, end - 1).split(",");
+            String[] columnAndValue = planText.substring(start + 3, end).split(", ");
             String columnName = columnAndValue[0];
-            Long greaterValue = Long.valueOf(columnAndValue[1]);
-            columnNameList.add(columnName);
+            String columnValue = columnAndValue[1];
+            long greaterValue = Long.valueOf(columnValue);
+            columnNameSet.add(columnName);
 
-            if (!columnRangeMap.containsKey(columnName)) {
-                InRange range = new InRange(columnName);
-                range.setLower(greaterValue);
+            InRange inRange = null;
+            if (columnRangeMap.containsKey(columnName)) {
+                inRange = columnRangeMap.get(columnName);
             } else {
-
-                InRange inRange = columnRangeMap.get(columnName);
-                if (greaterValue > inRange.getLower()) {
-                    inRange.setLower(greaterValue);
-                    columnRangeMap.put(columnName, inRange);
-                }
+                inRange = new InRange(columnName);
             }
-            index = end;
+
+            if (greaterValue > inRange.getLower()) {
+                inRange.setLower(greaterValue);
+                columnRangeMap.put(columnName, inRange);
+            }
+            index = end + 1;
         }
 
         //mathch lt
-        for (String columnName : columnNameList) {
+        for (String columnName : columnNameSet) {
             int start = planText.indexOf("lt(" + columnName);
             if (start < 0) {
                 columnRangeMap.remove(columnName);
             } else {
                 int end = planText.indexOf(")", start);
-                Long lessValue = Long.valueOf(planText.substring(start + 3 + columnName.length() + 1, end - 1));
+                long lessValue = Long.valueOf(planText.substring(start + "lt(".length() + columnName.length() + ", ".length(), end));
                 InRange inRange = columnRangeMap.get(columnName);
                 if (lessValue < inRange.getUpper()) {
                     inRange.setUpper(lessValue);

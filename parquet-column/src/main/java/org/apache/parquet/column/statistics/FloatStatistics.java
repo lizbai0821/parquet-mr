@@ -178,7 +178,10 @@ public class FloatStatistics extends Statistics<Float> implements BloomFilterSta
     }
 
     public void add(Float value) {
-        bloomFilter.addFloat(value);
+        if (isBloomFilterEnabled)
+            bloomFilter.addFloat(value);
+        if (isHistogramEnabled)
+            histogram.addFloat(value);
     }
 
     @Override

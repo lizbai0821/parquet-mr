@@ -173,7 +173,10 @@ public class LongStatistics extends Statistics<Long> implements BloomFilterStati
     }
 
     public void add(Long value) {
-        bloomFilter.addLong(value);
+        if (isBloomFilterEnabled)
+            bloomFilter.addLong(value);
+        if (isHistogramEnabled)
+            histogram.addLong(value);
     }
 
     @Override

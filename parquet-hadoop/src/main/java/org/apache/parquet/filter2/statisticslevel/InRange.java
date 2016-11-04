@@ -7,8 +7,8 @@ package org.apache.parquet.filter2.statisticslevel;
 public class InRange   // should be created as an abstract class?
 {
     public String columnName;
-    public Long lower = Long.MAX_VALUE;
-    public Long upper = Long.MIN_VALUE;
+    public Long lower = Long.MIN_VALUE;
+    public Long upper = Long.MAX_VALUE;
 
     public InRange(String columnName) {
         this.columnName = columnName;

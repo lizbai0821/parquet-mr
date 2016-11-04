@@ -424,6 +424,15 @@ public class ParquetFileReader implements Closeable {
   }
 
   public static ParquetMetadata readFooter(
+          Configuration configuration,
+          Path file,
+          MetadataFilter filter,
+          boolean includeBF, boolean includeHis) throws IOException {
+    FileSystem fileSystem = file.getFileSystem(configuration);
+    return readFooter(configuration, fileSystem.getFileStatus(file), filter, includeBF, includeHis);
+  }
+
+  public static ParquetMetadata readFooter(
       Configuration configuration,
       Path file,
       MetadataFilter filter) throws IOException {
@@ -434,7 +443,7 @@ public class ParquetFileReader implements Closeable {
       Configuration configuration,
       FileStatus file,
       MetadataFilter filter) throws IOException {
-    return readFooter(configuration, file, filter, true);
+    return readFooter(configuration, file, filter, true, true);
   }
 
   /**
@@ -464,6 +473,20 @@ public class ParquetFileReader implements Closeable {
     SeekableInputStream in = HadoopStreams.wrap(fileSystem.open(file.getPath()));
     try {
       return readFooter(file.getLen(), file.getPath().toString(), in, filter, includeBF);
+    } finally {
+      in.close();
+    }
+  }
+
+  public static final ParquetMetadata readFooter(
+          Configuration configuration,
+          FileStatus file,
+          MetadataFilter filter,
+          boolean includeBF, boolean includeHis) throws IOException {
+    FileSystem fileSystem = file.getPath().getFileSystem(configuration);
+    SeekableInputStream in = HadoopStreams.wrap(fileSystem.open(file.getPath()));
+    try {
+      return readFooter(file.getLen(), file.getPath().toString(), in, filter, includeBF, includeHis);
     } finally {
       in.close();
     }
@@ -507,6 +530,37 @@ public class ParquetFileReader implements Closeable {
     }
     f.seek(footerIndex);
     return converter.readParquetMetadata(f, filter, includeBF);
+  }
+
+  public static final ParquetMetadata readFooter(long fileLen, String filePath, SeekableInputStream f, MetadataFilter filter, boolean includeBF, boolean includeHis) throws IOException {
+    if (Log.DEBUG) {
+      LOG.debug("File length " + fileLen);
+    }
+    int FOOTER_LENGTH_SIZE = 4;
+    if (fileLen < MAGIC.length + FOOTER_LENGTH_SIZE + MAGIC.length) { // MAGIC + data + footer + footerIndex + MAGIC
+      throw new RuntimeException(filePath + " is not a Parquet file (too small)");
+    }
+    long footerLengthIndex = fileLen - FOOTER_LENGTH_SIZE - MAGIC.length;
+    if (Log.DEBUG) {
+      LOG.debug("reading footer index at " + footerLengthIndex);
+    }
+
+    f.seek(footerLengthIndex);
+    int footerLength = readIntLittleEndian(f);
+    byte[] magic = new byte[MAGIC.length];
+    f.readFully(magic);
+    if (!Arrays.equals(MAGIC, magic)) {
+      throw new RuntimeException(filePath + " is not a Parquet file. expected magic number at tail " + Arrays.toString(MAGIC) + " but found " + Arrays.toString(magic));
+    }
+    long footerIndex = footerLengthIndex - footerLength;
+    if (Log.DEBUG) {
+      LOG.debug("read footer length: " + footerLength + ", footer index: " + footerIndex);
+    }
+    if (footerIndex < MAGIC.length || footerIndex >= footerLengthIndex) {
+      throw new RuntimeException("corrupted file: the footer index is not within the file");
+    }
+    f.seek(footerIndex);
+    return converter.readParquetMetadata(f, filter, includeBF, includeHis);
   }
 
   public static ParquetFileReader open(Configuration conf, Path file) throws IOException {
@@ -592,7 +646,7 @@ public class ParquetFileReader implements Closeable {
     FileSystem fs = file.getFileSystem(conf);
     this.fileStatus = fs.getFileStatus(file);
     this.f = HadoopStreams.wrap(fs.open(file));
-    this.footer = readFooter(fileStatus.getLen(), fileStatus.getPath().toString(), f, filter, true);
+    this.footer = readFooter(fileStatus.getLen(), fileStatus.getPath().toString(), f, filter, true, true); //enable both bloom filter and histogram
     this.fileMetaData = footer.getFileMetaData();
     this.blocks = footer.getBlocks();
     for (ColumnDescriptor col : footer.getFileMetaData().getSchema().getColumns()) {
@@ -631,7 +685,7 @@ public class ParquetFileReader implements Closeable {
     if (footer == null) {
       try {
         // don't read the row groups because this.blocks is always set
-        this.footer = readFooter(fileStatus.getLen(), fileStatus.getPath().toString(), f, SKIP_ROW_GROUPS,true);
+        this.footer = readFooter(fileStatus.getLen(), fileStatus.getPath().toString(), f, SKIP_ROW_GROUPS,true, true);  //enable both bloom filter and histogram
       } catch (IOException e) {
         throw new ParquetDecodingException("Unable to read file footer", e);
       }

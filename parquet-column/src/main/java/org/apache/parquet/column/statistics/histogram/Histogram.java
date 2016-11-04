@@ -23,12 +23,13 @@ package org.apache.parquet.column.statistics.histogram;
  */
 public class Histogram {
 
-    protected int bucketsCount;
-    protected long min;
-    protected long max;
 
-    protected long[] buckets;
-    protected long[] counters;
+
+    protected long min; // lower bound
+    protected long max; // upper bound
+    protected int bucketsCount; // # of buckets
+    protected long[] buckets; // bound list of buckets
+    protected long[] counters; // # of values in each bucket
 
     public Histogram(HistogramOpts.HistogramEntry entry) {
         this.bucketsCount = entry.getBucketCount();
@@ -50,6 +51,10 @@ public class Histogram {
         }
     }
 
+    public void setCounters(long[] counters_) {
+        this.counters = counters_.clone();
+    }
+
 
     public void addValue(long value) {
         //O(n)
@@ -63,6 +68,12 @@ public class Histogram {
             counters[bucketNumber]++;
         }
     }
+
+    public long getmin(){return min;}
+    public long getmax(){return max;}
+    public int getbucketsCount() {return bucketsCount;}
+    public long[] getbuckets() {return buckets;}
+    public long[] getcounters() {return counters;}
 
 
     public void addLong(long value) {
@@ -84,10 +95,10 @@ public class Histogram {
     //where is test ??
     public boolean testLong (long low, long up) {
         int bucket_low = (int) (((double)(low - min) / (max - min)) * bucketsCount);
-        bucket_low = Math.min(bucket_low, buckets.length - 1);
+        //bucket_low = Math.min(bucket_low, buckets.length - 1);
 
         int bucket_up = (int) (((double)(up - min) / (max - min)) * bucketsCount);
-        bucket_up = Math.min(bucket_up, buckets.length - 1);
+        //bucket_up = Math.min(bucket_up, buckets.length - 1);
 
         while(bucket_low <= bucket_up){
             if(counters[bucket_low] != 0)

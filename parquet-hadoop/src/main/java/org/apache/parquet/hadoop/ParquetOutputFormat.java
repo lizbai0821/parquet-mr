@@ -40,6 +40,7 @@ import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.column.ParquetProperties.WriterVersion;
 import org.apache.parquet.column.statistics.StatisticsOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOptBuilder;
+import org.apache.parquet.column.statistics.histogram.HistogramOptBuilder;
 import org.apache.parquet.hadoop.ParquetFileWriter.Mode;
 import org.apache.parquet.hadoop.api.WriteSupport;
 import org.apache.parquet.hadoop.api.WriteSupport.WriteContext;
@@ -154,6 +155,10 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
   public static final String BLOOM_FILTER_COL_NAME = "parquet.bloom.filter.enable.column.names";
   public static final String FALSE_POSITIVE_PROBABILITY =
       "parquet.bloom.filter.false.positive.probability";
+  public static final String HISTOGRAM_COL_NAME = "parquet.histogram.enable.column.names";
+  public static final String BOUND_MIN ="parquet.histogram.bound.min";
+  public static final String BOUND_MAX = "parquet.histogram.bound.max";
+  public static final String BUCKETS_NUMBER = "parquet.histogram.buckets.number";
 
   // default to no padding for now
   private static final int DEFAULT_MAX_PADDING_SIZE = 0;
@@ -275,9 +280,16 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
     MessageType schema) {
     String colName = configuration.get(BLOOM_FILTER_COL_NAME);
     String expectedEntries = configuration.get(EXPECTED_ENTRIES);
+
+    String colNamesWithHistogram = configuration.get(ParquetOutputFormat.HISTOGRAM_COL_NAME, "");
+    String boundMin = configuration.get(ParquetOutputFormat.BOUND_MIN,"");
+    String boundMax = configuration.get(ParquetOutputFormat.BOUND_MAX,"");
+    String bucketsNumber = configuration.get(ParquetOutputFormat.BUCKETS_NUMBER);
+
     return new StatisticsOpts(
       new BloomFilterOptBuilder().enableCols(colName).expectedEntries(expectedEntries)
-        .build(schema));
+        .build(schema), new HistogramOptBuilder().enableCols(colNamesWithHistogram)
+            .setMinValues(boundMin).setMaxValues(boundMax).setBucketsCounts(bucketsNumber).build(schema));
   }
 
   @Deprecated

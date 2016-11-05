@@ -92,13 +92,12 @@ public class Histogram {
         addLong(Float.floatToIntBits(value));
     }
 
-    //where is test ??
     public boolean testLong (long low, long up) {
         int bucket_low = (int) (((double)(low - min) / (max - min)) * bucketsCount);
-        //bucket_low = Math.min(bucket_low, buckets.length - 1);
+        bucket_low = Math.min(bucket_low, buckets.length - 1);
 
         int bucket_up = (int) (((double)(up - min) / (max - min)) * bucketsCount);
-        //bucket_up = Math.min(bucket_up, buckets.length - 1);
+        bucket_up = Math.min(bucket_up, buckets.length - 1);
 
         while(bucket_low <= bucket_up){
             if(counters[bucket_low] != 0)

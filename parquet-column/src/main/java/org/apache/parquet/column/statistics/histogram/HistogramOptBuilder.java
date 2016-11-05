@@ -49,7 +49,7 @@ public class HistogramOptBuilder {
             ColumnDescriptor columnDescriptor = messageType.getColumnDescription(new String[]{cols[i]});//?
 
             columnDescriptorMap.put(columnDescriptor,
-                    new HistogramOpts.HistogramEntry(Long.parseLong(maxList[i]), Long.parseLong(minList[i]), Integer.parseInt(countList[i])));
+                    new HistogramOpts.HistogramEntry(Long.parseLong(minList[i]), Long.parseLong(maxList[i]), Integer.parseInt(countList[i])));
         }
 
         return new HistogramOpts(columnDescriptorMap);

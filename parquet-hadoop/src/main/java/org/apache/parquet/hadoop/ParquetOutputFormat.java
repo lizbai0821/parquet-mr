@@ -155,6 +155,7 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
   public static final String BLOOM_FILTER_COL_NAME = "parquet.bloom.filter.enable.column.names";
   public static final String FALSE_POSITIVE_PROBABILITY =
       "parquet.bloom.filter.false.positive.probability";
+  public static final String ENABLE_HISTOGRAM  = "parquet.enable.histogram";
   public static final String HISTOGRAM_COL_NAME = "parquet.histogram.enable.column.names";
   public static final String BOUND_MIN ="parquet.histogram.bound.min";
   public static final String BOUND_MAX = "parquet.histogram.bound.max";

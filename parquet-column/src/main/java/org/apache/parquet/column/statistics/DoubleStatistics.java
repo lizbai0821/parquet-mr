@@ -80,14 +80,21 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
     }
 
     @Override
-    void mergeBloomFilters(Statistics stats) {
+    public void mergeStatistics(Statistics stats) {
+        super.mergeStatistics(stats);
+        mergeBloomFilters(stats);
+        mergeHistogram(stats);
+    }
+
+    @Override
+    public void mergeBloomFilters(Statistics stats) {
         if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
             this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
         }
     }
 
     @Override
-    void mergeHistogram(Statistics stats) {
+    public void mergeHistogram(Statistics stats) {
         if (isHistogramEnabled && stats instanceof HistogramStatistics) {
             this.histogram.merge(((HistogramStatistics) stats).getHistogram());
         }
@@ -196,7 +203,7 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
         return bloomFilter.testDouble(value);
     }
 
-
+    @Override
     public boolean test(Double value1, Double value2) {
         return histogram.testDouble(value1, value2);
     }

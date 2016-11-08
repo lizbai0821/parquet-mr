@@ -23,8 +23,6 @@ package org.apache.parquet.column.statistics.histogram;
  */
 public class Histogram {
 
-
-
     protected long min; // lower bound
     protected long max; // upper bound
     protected int bucketsCount; // # of buckets
@@ -38,7 +36,6 @@ public class Histogram {
         this.buckets = entry.getEvenBuckets();
         this.counters = new long[bucketsCount];
     }
-
 
     public void merge(Histogram that) {
         if (this != that && this.counters.length == that.counters.length) {

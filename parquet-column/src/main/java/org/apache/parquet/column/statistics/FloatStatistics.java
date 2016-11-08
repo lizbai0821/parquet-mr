@@ -83,14 +83,21 @@ public class FloatStatistics extends Statistics<Float> implements BloomFilterSta
     }
 
     @Override
-    void mergeBloomFilters(Statistics stats) {
+    public void mergeStatistics(Statistics stats) {
+        super.mergeStatistics(stats);
+        mergeBloomFilters(stats);
+        mergeHistogram(stats);
+    }
+
+    @Override
+    public void mergeBloomFilters(Statistics stats) {
         if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
             this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
         }
     }
 
     @Override
-    void mergeHistogram(Statistics stats) {
+    public void mergeHistogram(Statistics stats) {
         if (isHistogramEnabled && stats instanceof HistogramStatistics) {
             this.histogram.merge(((HistogramStatistics) stats).getHistogram());
         }
@@ -177,6 +184,7 @@ public class FloatStatistics extends Statistics<Float> implements BloomFilterSta
         this.markAsNotEmpty();
     }
 
+    @Override
     public void add(Float value) {
         if (isBloomFilterEnabled)
             bloomFilter.addFloat(value);
@@ -198,6 +206,8 @@ public class FloatStatistics extends Statistics<Float> implements BloomFilterSta
     public boolean test(Float value) {
         return bloomFilter.testFloat(value);
     }
+
+    @Override
     public boolean test(Float value1, Float value2) {
         return histogram.testFloat(value1, value2);
     }

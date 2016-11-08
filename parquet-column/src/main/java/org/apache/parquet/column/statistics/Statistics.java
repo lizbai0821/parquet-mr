@@ -161,13 +161,8 @@ public abstract class Statistics<T extends Comparable<T>> {
     } else {
       throw new StatisticsClassException(this.getClass().toString(), stats.getClass().toString());
     }
-    mergeBloomFilters(stats);
-    mergeHistogram(stats);
   }
 
-  abstract void mergeBloomFilters(Statistics stats);
-
-  abstract void mergeHistogram(Statistics stats);
 
   /**
    * Abstract method to merge this statistics min and max with the values

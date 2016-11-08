@@ -90,14 +90,21 @@ public class IntStatistics extends Statistics<Integer> implements BloomFilterSta
     }
 
     @Override
-    void mergeBloomFilters(Statistics stats) {
+    public void mergeStatistics(Statistics stats) {
+        super.mergeStatistics(stats);
+        mergeBloomFilters(stats);
+        mergeHistogram(stats);
+    }
+
+    @Override
+    public void mergeBloomFilters(Statistics stats) {
         if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
             this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
         }
     }
 
     @Override
-    void mergeHistogram(Statistics stats) {
+    public void mergeHistogram(Statistics stats) {
         if (isHistogramEnabled && stats instanceof HistogramStatistics) {
             this.histogram.merge(((HistogramStatistics) stats).getHistogram());
         }
@@ -160,6 +167,7 @@ public class IntStatistics extends Statistics<Integer> implements BloomFilterSta
         return max;
     }
 
+    @Override
     public void add(Integer value) {
         if (isBloomFilterEnabled)
             bloomFilter.addInteger(value);
@@ -181,6 +189,8 @@ public class IntStatistics extends Statistics<Integer> implements BloomFilterSta
     public boolean test(Integer value) {
         return bloomFilter.testInteger(value);
     }
+
+    @Override
     public boolean test(Integer value1, Integer value2) {
         return histogram.testInteger(value1, value2);
     }

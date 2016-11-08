@@ -18,12 +18,18 @@
  */
 package org.apache.parquet.column.statistics.bloomfilter;
 
+import org.apache.parquet.column.statistics.Statistics;
+
 public interface BloomFilterStatistics<T> {
-  //void add(T value);
+    void add(T value);
 
-  BloomFilter getBloomFilter();
+    BloomFilter getBloomFilter();
 
-  boolean test(T value);
+    boolean test(T value);
 
-  boolean isBloomFilterEnabled();
+    boolean isBloomFilterEnabled();
+
+    void mergeBloomFilters(Statistics stats);
+
 }
+

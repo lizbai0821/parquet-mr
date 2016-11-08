@@ -78,14 +78,21 @@ public class LongStatistics extends Statistics<Long> implements BloomFilterStati
     }
 
     @Override
-    void mergeBloomFilters(Statistics stats) {
+    public void mergeStatistics(Statistics stats) {
+        super.mergeStatistics(stats);
+        mergeBloomFilters(stats);
+        mergeHistogram(stats);
+    }
+
+    @Override
+    public void mergeBloomFilters(Statistics stats) {
         if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
             this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
         }
     }
 
     @Override
-    void mergeHistogram(Statistics stats) {
+    public void mergeHistogram(Statistics stats) {
         if (isHistogramEnabled && stats instanceof HistogramStatistics) {
             this.histogram.merge(((HistogramStatistics) stats).getHistogram());
         }
@@ -172,6 +179,7 @@ public class LongStatistics extends Statistics<Long> implements BloomFilterStati
         this.markAsNotEmpty();
     }
 
+    @Override
     public void add(Long value) {
         if (isBloomFilterEnabled)
             bloomFilter.addLong(value);
@@ -193,6 +201,8 @@ public class LongStatistics extends Statistics<Long> implements BloomFilterStati
     public boolean test(Long value) {
         return bloomFilter.testLong(value);
     }
+
+    @Override
     public boolean test(Long value1, Long value2) {
         return histogram.testLong(value1,value2);
     }

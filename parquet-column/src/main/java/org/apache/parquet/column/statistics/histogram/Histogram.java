@@ -65,7 +65,7 @@ public class Histogram {
     public void fastBucketAddFunction(long value) {
         if (value >= min && value <= max) {
             int bucketNumber = (int) (((double)(value - min) / (max - min)) * bucketsCount); // double is needed?
-            bucketNumber = Math.min(bucketNumber, buckets.length - 1);
+            bucketNumber = Math.min(bucketNumber, counters.length - 1);
             counters[bucketNumber]++;
         }
     }
@@ -86,19 +86,19 @@ public class Histogram {
     }
 
     public void addDouble(double value) {
-        addLong(Double.doubleToLongBits(value));
+        addLong((long)value);
     }
 
     public void addFloat(float value) {
-        addLong(Float.floatToIntBits(value));
+        addInteger((int)value);
     }
 
     public boolean testLong (long low, long up) {
         int bucket_low = (int) (((double)(low - min) / (max - min)) * bucketsCount);
-        bucket_low = Math.min(bucket_low, buckets.length - 1);
+        bucket_low = Math.min(bucket_low, counters.length - 1);
 
         int bucket_up = (int) (((double)(up - min) / (max - min)) * bucketsCount);
-        bucket_up = Math.min(bucket_up, buckets.length - 1);
+        bucket_up = Math.min(bucket_up, counters.length - 1);
 
         while(bucket_low <= bucket_up){
             if(counters[bucket_low] != 0)
@@ -109,7 +109,7 @@ public class Histogram {
     }
 
     public boolean testFloat(float low, float up){
-        return testInteger(Float.floatToIntBits(low), Float.floatToIntBits(up));
+        return testInteger((int)low, (int)up);
     }
 
     public boolean testInteger (int low, int up){
@@ -117,7 +117,7 @@ public class Histogram {
     }
 
     public boolean testDouble (double low, double up){
-        return testLong(Double.doubleToLongBits(low), Double.doubleToLongBits(up));
+        return testLong((long)low, (long)up);
     }
 }
 

@@ -26,6 +26,9 @@ import junit.framework.Assert;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOptBuilder;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.HistogramOptBuilder;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.junit.Test;
 
 import org.apache.parquet.io.api.Binary;
@@ -42,7 +45,7 @@ public class TestStatistics {
 
   @Test
   public void testNumNulls() {
-    IntStatistics stats = new IntStatistics(new ColumnStatisticsOpts(null));
+    IntStatistics stats = new IntStatistics(new ColumnStatisticsOpts(null, null));
     assertEquals(stats.getNumNulls(), 0);
 
     stats.incrementNumNulls();
@@ -201,6 +204,131 @@ public class TestStatistics {
     Assert.assertTrue(statistics.test(v1));
     Assert.assertTrue(statistics.test(v2));
     Assert.assertTrue(statistics.test(v3));
+  }
+
+  private void checkHistogram(Integer[] d, HistogramStatistics statistics) {
+    int v1 = d[0];
+    int v2 = d[3];
+    int v3 = d[6];
+
+    Assert.assertFalse(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v1);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v2);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v3);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertTrue(statistics.test(d[7], d[8]));
+  }
+
+  private void checkHistogram(Double[] d, HistogramStatistics statistics) {
+    Double v1 = d[0];
+    Double v2 = d[3];
+    Double v3 = d[6];
+
+    Assert.assertFalse(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v1);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v2);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v3);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertTrue(statistics.test(d[7], d[8]));
+  }
+
+  private void checkHistogram(Long[] d, HistogramStatistics statistics) {
+    Long v1 = d[0];
+    Long v2 = d[3];
+    Long v3 = d[6];
+
+    Assert.assertFalse(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v1);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v2);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v3);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertTrue(statistics.test(d[7], d[8]));
+  }
+
+
+  private void checkHistogram(Float[] d, HistogramStatistics statistics) {
+    Float v1 = d[0];
+    Float v2 = d[3];
+    Float v3 = d[6];
+
+    Assert.assertFalse(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v1);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertFalse(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v2);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertFalse(statistics.test(d[7], d[8]));
+
+    ((Statistics) statistics).updateStats(v3);
+    Assert.assertTrue(statistics.test(d[1], d[2]));
+    Assert.assertTrue(statistics.test(d[4], d[5]));
+    Assert.assertTrue(statistics.test(d[7], d[8]));
+  }
+
+  private static ColumnStatisticsOpts getHistogramOpts(
+          StatisticsOpts statisticsOpts,
+          String colName,
+          MessageType messageType) {
+    return statisticsOpts.getStatistics(messageType.getColumnDescription(new String[] { colName }));
+  }
+
+  @Test
+  public void testHistogram() {
+    MessageType messageType = MessageTypeParser.parseMessageType(
+            "message hive_schema {optional int32 a; optional int64 b; optional double c; optional float d;}");
+    HistogramOpts opts =
+            new HistogramOptBuilder().enableCols("a,b,c,d").setMinValues("0,0,0,0").setMaxValues("100,100,100,100").setBucketsCounts("5,5,5,5").build(messageType);
+    StatisticsOpts statisticsOpts = new StatisticsOpts(null, opts);
+    checkHistogram(new Integer[] { 10, 0, 20, 30, 20, 40, 50, 40, 60},
+            new IntStatistics(getHistogramOpts(statisticsOpts, "a", messageType)));
+    checkHistogram(new Long[] { 10L, 0L, 20L, 30L, 20L, 40L, 50L, 40L, 60L },
+            new LongStatistics(getHistogramOpts(statisticsOpts, "b", messageType)));
+    checkHistogram(new Double[] { 10.0, 0.0, 20.0, 30.0, 20.0, 40.0, 50.0, 40.0, 60.0 },
+            new DoubleStatistics(getHistogramOpts(statisticsOpts, "c", messageType)));
+    checkHistogram(new Float[] { 10.0f, 0.0f, 20.0f, 30.0f, 20.0f, 40.0f, 50.0f, 40.0f, 60.0f },
+            new FloatStatistics(getHistogramOpts(statisticsOpts, "d", messageType)));
   }
 
   @Test

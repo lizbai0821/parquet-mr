@@ -36,14 +36,14 @@ public class HistogramOpts {
         private int bucketCount;
         private long[] evenBuckets;
 
-        public HistogramEntry(long min, long max,int bucketcount) {
+        public HistogramEntry(long min, long max,int bucketCount) {
             this.min = min;
             this.max = max;
-            this.bucketCount = bucketcount;
+            this.bucketCount = bucketCount;
 
-            evenBuckets = new long[bucketcount + 1];
-            long span = (max - min) / bucketcount;
-            for (int i = 0; i <= bucketcount; i++) {
+            evenBuckets = new long[bucketCount + 1];
+            long span = (max - min) / bucketCount;
+            for (int i = 0; i <= bucketCount; i++) {
                 evenBuckets[i] = min + i * span;
             }
         }

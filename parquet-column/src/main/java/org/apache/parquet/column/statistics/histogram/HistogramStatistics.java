@@ -18,12 +18,17 @@
  */
 package org.apache.parquet.column.statistics.histogram;
 
+import org.apache.parquet.column.statistics.Statistics;
+
 public interface HistogramStatistics<T> {
-  //void add(T value);
+    void add(T value);
 
-  Histogram getHistogram();
+    Histogram getHistogram();
 
-  boolean test(T value, T value2);
+    boolean test(T value1, T value2);
 
-  boolean isHistogramEnabled();
+    boolean isHistogramEnabled();
+
+    void mergeHistogram(Statistics stats);
+
 }

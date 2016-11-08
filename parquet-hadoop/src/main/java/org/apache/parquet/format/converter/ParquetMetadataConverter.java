@@ -18,74 +18,33 @@
  */
 package org.apache.parquet.format.converter;
 
+import org.apache.parquet.CorruptStatistics;
+import org.apache.parquet.Log;
+import org.apache.parquet.column.EncodingStats;
+import org.apache.parquet.column.statistics.ColumnStatisticsOpts;
+import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
+import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
+import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
+import org.apache.parquet.format.*;
+import org.apache.parquet.format.FileMetaData;
+import org.apache.parquet.format.Type;
+import org.apache.parquet.hadoop.metadata.*;
+import org.apache.parquet.io.ParquetDecodingException;
+import org.apache.parquet.schema.*;
+import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
+import org.apache.parquet.schema.Type.Repetition;
+
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
+
 import static org.apache.parquet.format.Util.readFileMetaData;
 import static org.apache.parquet.format.Util.writePageHeader;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.apache.parquet.CorruptStatistics;
-import org.apache.parquet.Log;
 //import org.apache.parquet.column.statistics.histogram.Histogram;
-import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
-import org.apache.parquet.column.statistics.histogram.HistogramOpts;
-import org.apache.parquet.format.PageEncodingStats;
-import org.apache.parquet.hadoop.metadata.ColumnPath;
-import org.apache.parquet.column.statistics.ColumnStatisticsOpts;
-import org.apache.parquet.column.statistics.StatisticsOpts;
-import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
-import org.apache.parquet.column.statistics.bloomfilter.BloomFilterStatistics;
-import org.apache.parquet.format.Histogram;
-import org.apache.parquet.format.BloomFilter;
-import org.apache.parquet.format.BloomFilterStrategy;
-import org.apache.parquet.format.ColumnChunk;
-import org.apache.parquet.format.ColumnMetaData;
-import org.apache.parquet.format.ConvertedType;
-import org.apache.parquet.format.DataPageHeader;
-import org.apache.parquet.format.DataPageHeaderV2;
-import org.apache.parquet.format.DictionaryPageHeader;
-import org.apache.parquet.format.Encoding;
-import org.apache.parquet.format.FieldRepetitionType;
-import org.apache.parquet.format.FileMetaData;
-import org.apache.parquet.format.KeyValue;
-import org.apache.parquet.format.PageHeader;
-import org.apache.parquet.format.PageType;
-import org.apache.parquet.format.RowGroup;
-import org.apache.parquet.format.SchemaElement;
-import org.apache.parquet.format.Statistics;
-import org.apache.parquet.format.Type;
-import org.apache.parquet.hadoop.metadata.ColumnPath;
-import org.apache.parquet.hadoop.metadata.BlockMetaData;
-import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.column.EncodingStats;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.io.ParquetDecodingException;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.OriginalType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName;
-import org.apache.parquet.schema.Type.Repetition;
-import org.apache.parquet.schema.TypeVisitor;
-import org.apache.parquet.schema.Types;
 
 // TODO: This file has become too long!
 // TODO: Lets split it up: https://issues.apache.org/jira/browse/PARQUET-310

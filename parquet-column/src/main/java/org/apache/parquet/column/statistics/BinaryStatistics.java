@@ -25,176 +25,179 @@ import org.apache.parquet.column.statistics.histogram.Histogram;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.io.api.Binary;
 
-public class BinaryStatistics extends Statistics<Binary> implements BloomFilterStatistics<Binary>{
+public class BinaryStatistics extends Statistics<Binary> implements BloomFilterStatistics<Binary> {
 
-  private Binary max;
-  private Binary min;
-  private BloomFilter bloomFilter;
-  private boolean isBloomFilterEnabled = false;
-  private Histogram histogram;
-  private boolean isHistogramEnabled = false;
+    private Binary max;
+    private Binary min;
+    private BloomFilter bloomFilter;
+    private boolean isBloomFilterEnabled = false;
 
-  public BinaryStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
-    super();
-    if (columnStatisticsOpts != null) {
-      updateBloomFilterOptions(columnStatisticsOpts.getBloomFilterOpts());
-    }
-  }
-
-  private void updateBloomFilterOptions(BloomFilterOpts.BloomFilterEntry statisticsOpts) {
-    if (statisticsOpts != null) {
-      bloomFilter =
-          new BloomFilter(statisticsOpts.getNumBits(), statisticsOpts.getNumHashFunctions());
-      isBloomFilterEnabled = true;
-    }
-  }
-
-  @Override
-  public void updateStats(Binary value) {
-    if (!this.hasNonNullValue()) {
-      initializeStats(value, value);
-    } else {
-      updateStats(value, value);
+    public BinaryStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
+        super();
+        if (columnStatisticsOpts != null) {
+            updateBloomFilterOptions(columnStatisticsOpts.getBloomFilterOpts());
+        }
     }
 
-    if (isBloomFilterEnabled) {
-      add(value);
+    private void updateBloomFilterOptions(BloomFilterOpts.BloomFilterEntry statisticsOpts) {
+        if (statisticsOpts != null) {
+            bloomFilter =
+                    new BloomFilter(statisticsOpts.getNumBits(), statisticsOpts.getNumHashFunctions());
+            isBloomFilterEnabled = true;
+        }
     }
-  }
 
-  @Override
-  void mergeBloomFilters(Statistics stats) {
-    if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
-      this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+    @Override
+    public void updateStats(Binary value) {
+        if (!this.hasNonNullValue()) {
+            initializeStats(value, value);
+        } else {
+            updateStats(value, value);
+        }
+
+        if (isBloomFilterEnabled) {
+            add(value);
+        }
     }
-  }
 
-  @Override
-  void mergeHistogram(Statistics stats) {
-    if (isHistogramEnabled && stats instanceof HistogramStatistics) {
-      this.histogram.merge(((HistogramStatistics) stats).getHistogram());
+    @Override
+    public void mergeStatistics(Statistics stats) {
+        super.mergeStatistics(stats);
+        mergeBloomFilters(stats);
     }
-  }
 
-  @Override
-  public void mergeStatisticsMinMax(Statistics stats) {
-    BinaryStatistics binaryStats = (BinaryStatistics)stats;
-    if (!this.hasNonNullValue()) {
-      initializeStats(binaryStats.getMin(), binaryStats.getMax());
-    } else {
-      updateStats(binaryStats.getMin(), binaryStats.getMax());
+    @Override
+    public void mergeBloomFilters(Statistics stats) {
+        if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
+            this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
+        }
     }
-  }
 
-  /**
-   * Sets min and max values, re-uses the byte[] passed in.
-   * Any changes made to byte[] will be reflected in min and max values as well.
-   * @param minBytes byte array to set the min value to
-   * @param maxBytes byte array to set the max value to
-   */
-  @Override
-  public void setMinMaxFromBytes(byte[] minBytes, byte[] maxBytes) {
-    max = Binary.fromReusedByteArray(maxBytes);
-    min = Binary.fromReusedByteArray(minBytes);
-    this.markAsNotEmpty();
-  }
+    @Override
+    public void mergeStatisticsMinMax(Statistics stats) {
+        BinaryStatistics binaryStats = (BinaryStatistics) stats;
+        if (!this.hasNonNullValue()) {
+            initializeStats(binaryStats.getMin(), binaryStats.getMax());
+        } else {
+            updateStats(binaryStats.getMin(), binaryStats.getMax());
+        }
+    }
 
-  @Override
-  public byte[] getMaxBytes() {
-    return max == null ? null : max.getBytes();
-  }
+    /**
+     * Sets min and max values, re-uses the byte[] passed in.
+     * Any changes made to byte[] will be reflected in min and max values as well.
+     *
+     * @param minBytes byte array to set the min value to
+     * @param maxBytes byte array to set the max value to
+     */
+    @Override
+    public void setMinMaxFromBytes(byte[] minBytes, byte[] maxBytes) {
+        max = Binary.fromReusedByteArray(maxBytes);
+        min = Binary.fromReusedByteArray(minBytes);
+        this.markAsNotEmpty();
+    }
 
-  @Override
-  public byte[] getMinBytes() {
-    return min == null ? null : min.getBytes();
-  }
+    @Override
+    public byte[] getMaxBytes() {
+        return max == null ? null : max.getBytes();
+    }
 
-  @Override
-  public boolean isSmallerThan(long size) {
-    return !hasNonNullValue() || ((min.length() + max.length()) < size);
-  }
+    @Override
+    public byte[] getMinBytes() {
+        return min == null ? null : min.getBytes();
+    }
 
-  @Override
-  public String toString() {
-    if (this.hasNonNullValue())
-      return String.format("min: %s, max: %s, num_nulls: %d", min.toStringUsingUTF8(), max.toStringUsingUTF8(), this.getNumNulls());
-   else if (!this.isEmpty())
-      return String.format("num_nulls: %d, min/max not defined", this.getNumNulls());
-   else
-      return "no stats for this column";
-  }
+    @Override
+    public boolean isSmallerThan(long size) {
+        return !hasNonNullValue() || ((min.length() + max.length()) < size);
+    }
 
-  /**
-   * @deprecated use {@link #updateStats(Binary)}, will be removed in 2.0.0
-   */
-  @Deprecated
-  public void updateStats(Binary min_value, Binary max_value) {
-    if (min.compareTo(min_value) > 0) { min = min_value.copy(); }
-    if (max.compareTo(max_value) < 0) { max = max_value.copy(); }
-  }
+    @Override
+    public String toString() {
+        if (this.hasNonNullValue())
+            return String.format("min: %s, max: %s, num_nulls: %d", min.toStringUsingUTF8(), max.toStringUsingUTF8(), this.getNumNulls());
+        else if (!this.isEmpty())
+            return String.format("num_nulls: %d, min/max not defined", this.getNumNulls());
+        else
+            return "no stats for this column";
+    }
 
-  /**
-   * @deprecated use {@link #updateStats(Binary)}, will be removed in 2.0.0
-   */
-  @Deprecated
-  public void initializeStats(Binary min_value, Binary max_value) {
-      min = min_value.copy();
-      max = max_value.copy();
-      this.markAsNotEmpty();
-  }
+    /**
+     * @deprecated use {@link #updateStats(Binary)}, will be removed in 2.0.0
+     */
+    @Deprecated
+    public void updateStats(Binary min_value, Binary max_value) {
+        if (min.compareTo(min_value) > 0) {
+            min = min_value.copy();
+        }
+        if (max.compareTo(max_value) < 0) {
+            max = max_value.copy();
+        }
+    }
 
-  @Override
-  public Binary genericGetMin() {
-    return min;
-  }
+    /**
+     * @deprecated use {@link #updateStats(Binary)}, will be removed in 2.0.0
+     */
+    @Deprecated
+    public void initializeStats(Binary min_value, Binary max_value) {
+        min = min_value.copy();
+        max = max_value.copy();
+        this.markAsNotEmpty();
+    }
 
-  @Override
-  public Binary genericGetMax() {
-    return max;
-  }
+    @Override
+    public Binary genericGetMin() {
+        return min;
+    }
 
-  /**
-   * @deprecated use {@link #genericGetMax()}, will be removed in 2.0.0
-   */
-  @Deprecated
-  public Binary getMax() {
-    return max;
-  }
+    @Override
+    public Binary genericGetMax() {
+        return max;
+    }
 
-  /**
-   * @deprecated use {@link #genericGetMin()}, will be removed in 2.0.0
-   */
-  @Deprecated
-  public Binary getMin() {
-    return min;
-  }
+    /**
+     * @deprecated use {@link #genericGetMax()}, will be removed in 2.0.0
+     */
+    @Deprecated
+    public Binary getMax() {
+        return max;
+    }
 
-  /**
-   * @deprecated use {@link #updateStats(Binary)}, will be removed in 2.0.0
-   */
-  @Deprecated
-  public void setMinMax(Binary min, Binary max) {
-    this.max = max;
-    this.min = min;
-    this.markAsNotEmpty();
-  }
+    /**
+     * @deprecated use {@link #genericGetMin()}, will be removed in 2.0.0
+     */
+    @Deprecated
+    public Binary getMin() {
+        return min;
+    }
 
-  public void add(Binary value) {
-    bloomFilter.addBinary(value);
-  }
+    /**
+     * @deprecated use {@link #updateStats(Binary)}, will be removed in 2.0.0
+     */
+    @Deprecated
+    public void setMinMax(Binary min, Binary max) {
+        this.max = max;
+        this.min = min;
+        this.markAsNotEmpty();
+    }
 
-  @Override
-  public BloomFilter getBloomFilter() {
-    return bloomFilter;
-  }
+    @Override
+    public void add(Binary value) {
+        bloomFilter.addBinary(value);
+    }
 
-  @Override
-  public boolean test(Binary value) {
-    return bloomFilter.testBinary(value);
-  }
+    @Override
+    public BloomFilter getBloomFilter() {
+        return bloomFilter;
+    }
 
-  @Override
-  public boolean isBloomFilterEnabled() {
-    return isBloomFilterEnabled;
-  }
+    @Override
+    public boolean test(Binary value) {
+        return bloomFilter.testBinary(value);
+    }
+
+    @Override
+    public boolean isBloomFilterEnabled() {
+        return isBloomFilterEnabled;
+    }
 }

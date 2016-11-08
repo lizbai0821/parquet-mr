@@ -27,6 +27,8 @@ import org.apache.parquet.CorruptStatistics;
 import org.apache.parquet.Version;
 import org.apache.parquet.VersionParser;
 import org.apache.parquet.bytes.BytesUtils;
+import org.apache.parquet.column.statistics.histogram.HistogramOptBuilder;
+import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.hadoop.ParquetOutputFormat.JobSummaryLevel;
 import org.apache.parquet.format.BloomFilterStrategy;
 import org.junit.Assume;
@@ -500,6 +502,61 @@ public class TestParquetFileWriter {
     assertTrue(convertedBackStats.test(v2));
     assertTrue(parquetMRstats.test(v3));
     assertTrue(convertedBackStats.test(v3));
+  }
+
+  @Test
+  public void testHistogramConverter() {
+    int v1 = 15;
+    int v2 = 45;
+    int v3 = 75;
+    final String createdBy =
+            "parquet-mr version 1.8.0 (build d4d5a07ec9bd262ca1e93c309f1d7d4a74ebda4c)";
+    MessageType messageType =
+            MessageTypeParser.parseMessageType("Message messageType{optional int32 a;}");
+    HistogramOpts hitogramOpts = new HistogramOptBuilder().enableCols("a").setMinValues("0").setMaxValues("100").setBucketsCounts("5").build(messageType);
+
+    StatisticsOpts statisticsOpts = new StatisticsOpts(null,hitogramOpts);
+    IntStatistics parquetMRstats = new IntStatistics(
+            statisticsOpts.getStatistics(messageType.getColumnDescription(new String[] { "a" })));
+    parquetMRstats.updateStats(v1);
+
+    Statistics thriftStats = org.apache.parquet.format.converter.ParquetMetadataConverter
+            .toParquetStatistics(parquetMRstats);
+    IntStatistics convertedBackStats =
+            (IntStatistics) org.apache.parquet.format.converter.ParquetMetadataConverter
+                    .fromParquetStatisticsWithBH(createdBy, thriftStats, PrimitiveTypeName.INT32);
+    assertTrue(parquetMRstats.test(0,20));
+    assertTrue(convertedBackStats.test(0,200));
+    assertFalse(parquetMRstats.test(40,60));
+    assertFalse(convertedBackStats.test(40,60));
+    assertFalse(parquetMRstats.test(60, 80));
+    assertFalse(convertedBackStats.test(60, 80));
+
+    parquetMRstats.updateStats(v2);
+    thriftStats = org.apache.parquet.format.converter.ParquetMetadataConverter
+            .toParquetStatistics(parquetMRstats);
+    convertedBackStats =
+            (IntStatistics) org.apache.parquet.format.converter.ParquetMetadataConverter
+                    .fromParquetStatisticsWithBH(createdBy, thriftStats, PrimitiveTypeName.INT32);
+    assertTrue(parquetMRstats.test(0,20));
+    assertTrue(convertedBackStats.test(0,20));
+    assertTrue(parquetMRstats.test(40,50));
+    assertTrue(convertedBackStats.test(40, 50));
+    assertFalse(parquetMRstats.test(70, 80));
+    assertFalse(convertedBackStats.test(70, 80));
+
+    parquetMRstats.updateStats(v3);
+    thriftStats = org.apache.parquet.format.converter.ParquetMetadataConverter
+            .toParquetStatistics(parquetMRstats);
+    convertedBackStats =
+            (IntStatistics) org.apache.parquet.format.converter.ParquetMetadataConverter
+                    .fromParquetStatisticsWithBH(createdBy, thriftStats, PrimitiveTypeName.INT32);
+    assertTrue(parquetMRstats.test(0,20));
+    assertTrue(convertedBackStats.test(0,20));
+    assertTrue(parquetMRstats.test(40,60));
+    assertTrue(convertedBackStats.test(40,60));
+    assertTrue(parquetMRstats.test(60, 80));
+    assertTrue(convertedBackStats.test(60, 80));
   }
 
   @Test

@@ -279,13 +279,13 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
   public static StatisticsOpts getStatisticsOpts(
     Configuration configuration,
     MessageType schema) {
-    String colName = configuration.get(BLOOM_FILTER_COL_NAME);
-    String expectedEntries = configuration.get(EXPECTED_ENTRIES);
+    String colName = configuration.get(BLOOM_FILTER_COL_NAME,"");
+    String expectedEntries = configuration.get(EXPECTED_ENTRIES,"");
 
     String colNamesWithHistogram = configuration.get(ParquetOutputFormat.HISTOGRAM_COL_NAME, "");
     String boundMin = configuration.get(ParquetOutputFormat.BOUND_MIN,"");
     String boundMax = configuration.get(ParquetOutputFormat.BOUND_MAX,"");
-    String bucketsNumber = configuration.get(ParquetOutputFormat.BUCKETS_NUMBER);
+    String bucketsNumber = configuration.get(ParquetOutputFormat.BUCKETS_NUMBER,"");
 
     return new StatisticsOpts(
       new BloomFilterOptBuilder().enableCols(colName).expectedEntries(expectedEntries)

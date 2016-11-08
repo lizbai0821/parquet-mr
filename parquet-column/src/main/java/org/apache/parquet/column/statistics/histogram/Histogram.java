@@ -55,6 +55,10 @@ public class Histogram {
         this.counters = counters_.clone();
     }
 
+    public void setBuckets(long[] buckets_) {
+        this.buckets = buckets_.clone();
+    }
+
 
     public void addValue(long value) {
         //O(n)

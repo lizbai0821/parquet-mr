@@ -512,7 +512,9 @@ public class ParquetMetadataConverter {
 
       if (statistics.getHistogram()!=null && stats instanceof HistogramStatistics) {
         ((HistogramStatistics) stats).
-                getHistogram().setCounters(deserializeLongArray(ByteBuffer.wrap(statistics.getHistogram().getCounters())));  // ...
+                getHistogram().setCounters(deserializeLongArray(ByteBuffer.wrap(statistics.getHistogram().getCounters())));
+        ((HistogramStatistics) stats).
+                getHistogram().setBuckets(deserializeLongArray(ByteBuffer.wrap(statistics.getHistogram().getBuckets())));
       }
 
       stats.setNumNulls(statistics.null_count);

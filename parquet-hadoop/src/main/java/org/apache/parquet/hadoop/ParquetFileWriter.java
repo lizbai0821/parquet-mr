@@ -302,7 +302,7 @@ public class ParquetFileWriter {
     String colNamesWithHistogram = conf.get(ParquetOutputFormat.HISTOGRAM_COL_NAME, "");
     String boundMin = conf.get(ParquetOutputFormat.BOUND_MIN,"");
     String boundMax = conf.get(ParquetOutputFormat.BOUND_MAX,"");
-    String bucketsNumber = conf.get(ParquetOutputFormat.BUCKETS_NUMBER);
+    String bucketsNumber = conf.get(ParquetOutputFormat.BUCKETS_NUMBER,"");
     LOG.info("Bound Range [ " + boundMin + ", " + boundMax + "], : Number of buckets"
             + bucketsNumber);
     HistogramOpts histogramOpts = new HistogramOptBuilder().enableCols(colNamesWithHistogram)

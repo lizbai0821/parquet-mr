@@ -31,6 +31,7 @@ import java.util.Map;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.parquet.column.statistics.*;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
+import org.apache.parquet.hadoop.ParquetOutputFormat;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
 import org.apache.parquet.hadoop.util.ContextUtil;
@@ -73,6 +74,7 @@ public class TestThriftToParquetFileWriter {
 
   @Test
   public void testWriteFile() throws IOException, InterruptedException, TException {
+
     final AddressBook a = new AddressBook(
         Arrays.asList(
             new Person(

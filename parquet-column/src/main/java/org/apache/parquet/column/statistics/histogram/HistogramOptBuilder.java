@@ -46,13 +46,16 @@ public class HistogramOptBuilder {
         String[] maxList = maxValues.split(",");
         String[] countList = bucketsCounts.split(",");
 
+
+
+
         Map<ColumnDescriptor, HistogramOpts.HistogramEntry> columnDescriptorMap = new HashMap<>();
 
         for (int i = 0; i < cols.length; i++) {
             ColumnDescriptor columnDescriptor = messageType.getColumnDescription(new String[]{cols[i]});//?
 
             columnDescriptorMap.put(columnDescriptor,
-                    new HistogramOpts.HistogramEntry(Long.parseLong(minList[i]), Long.parseLong(maxList[i]), Integer.parseInt(countList[i])));
+                    new HistogramOpts.HistogramEntry((long) Double.parseDouble(minList[i]), (long) Double.parseDouble(maxList[i]), Integer.parseInt(countList[i])));
         }
 
         return new HistogramOpts(columnDescriptorMap);

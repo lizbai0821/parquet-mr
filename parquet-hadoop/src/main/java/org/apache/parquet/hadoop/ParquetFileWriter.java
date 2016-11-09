@@ -276,39 +276,57 @@ public class ParquetFileWriter {
     buildBHOpts(configuration);
   }
 
-  private void buildBloomFilterOpts(Configuration conf) {
-    String colNamesWithBloomFilter = conf.get(ParquetOutputFormat.BLOOM_FILTER_COL_NAME, "");
-    String expectedEntries = conf.get(ParquetOutputFormat.EXPECTED_ENTRIES, "");
-    String FPPs = conf.get(ParquetOutputFormat.FALSE_POSITIVE_PROBABILITY, "");
-    LOG.info("FPP: " + FPPs + " expectedEntries:  " + expectedEntries + "colNamesWithBloomFilter:"
-        + colNamesWithBloomFilter);
-    BloomFilterOpts bloomFilterOpts =
-        new BloomFilterOptBuilder().enableCols(colNamesWithBloomFilter)
-            .expectedEntries(expectedEntries).falsePositiveProbabilities(FPPs).build(schema);
-    statisticsOpts = new StatisticsOpts(bloomFilterOpts);
-  }
+    private void buildBloomFilterOpts(Configuration conf) {
 
+        String isBloomFilterEnabled = conf.get(ParquetOutputFormat.ENABLE_BLOOM_FILTER, "").toUpperCase();
+        BloomFilterOpts bloomFilterOpts = null;
 
-  private void buildBHOpts(Configuration conf) {
-    String colNamesWithBloomFilter = conf.get(ParquetOutputFormat.BLOOM_FILTER_COL_NAME, "");
-    String expectedEntries = conf.get(ParquetOutputFormat.EXPECTED_ENTRIES, "");
-    String FPPs = conf.get(ParquetOutputFormat.FALSE_POSITIVE_PROBABILITY, "");
-    LOG.info("FPP: " + FPPs + " expectedEntries:  " + expectedEntries + "colNamesWithBloomFilter:"
-            + colNamesWithBloomFilter);
-    BloomFilterOpts bloomFilterOpts =
-            new BloomFilterOptBuilder().enableCols(colNamesWithBloomFilter)
+        if ("TRUE".equals(isBloomFilterEnabled)) {
+            String colNamesWithBloomFilter = conf.get(ParquetOutputFormat.BLOOM_FILTER_COL_NAME, "");
+            String expectedEntries = conf.get(ParquetOutputFormat.EXPECTED_ENTRIES, "");
+            String FPPs = conf.get(ParquetOutputFormat.FALSE_POSITIVE_PROBABILITY, "");
+            LOG.info("FPP: " + FPPs + " expectedEntries:  " + expectedEntries + "colNamesWithBloomFilter:"
+                    + colNamesWithBloomFilter);
+
+            bloomFilterOpts = new BloomFilterOptBuilder().enableCols(colNamesWithBloomFilter)
                     .expectedEntries(expectedEntries).falsePositiveProbabilities(FPPs).build(schema);
+        }
+        statisticsOpts = new StatisticsOpts(bloomFilterOpts);
+    }
 
-    String colNamesWithHistogram = conf.get(ParquetOutputFormat.HISTOGRAM_COL_NAME, "");
-    String boundMin = conf.get(ParquetOutputFormat.BOUND_MIN,"");
-    String boundMax = conf.get(ParquetOutputFormat.BOUND_MAX,"");
-    String bucketsNumber = conf.get(ParquetOutputFormat.BUCKETS_NUMBER,"");
-    LOG.info("Bound Range [ " + boundMin + ", " + boundMax + "], : Number of buckets"
-            + bucketsNumber);
-    HistogramOpts histogramOpts = new HistogramOptBuilder().enableCols(colNamesWithHistogram)
-            .setMinValues(boundMin).setMaxValues(boundMax).setBucketsCounts(bucketsNumber).build(schema);
-    statisticsOpts = new StatisticsOpts(bloomFilterOpts,histogramOpts);
-  }
+
+    private void buildBHOpts(Configuration conf) {
+
+        String isBloomFilterEnabled = conf.get(ParquetOutputFormat.ENABLE_BLOOM_FILTER, "").toUpperCase();
+        String isHistogramEnabled = conf.get(ParquetOutputFormat.ENABLE_HISTOGRAM, "").toUpperCase();
+        BloomFilterOpts bloomFilterOpts = null;
+        HistogramOpts histogramOpts = null;
+
+        if ("TRUE".equals(isBloomFilterEnabled)) {
+            String colNamesWithBloomFilter = conf.get(ParquetOutputFormat.BLOOM_FILTER_COL_NAME, "");
+            String expectedEntries = conf.get(ParquetOutputFormat.EXPECTED_ENTRIES, "");
+            String FPPs = conf.get(ParquetOutputFormat.FALSE_POSITIVE_PROBABILITY, "");
+            LOG.info("FPP: " + FPPs + " expectedEntries:  " + expectedEntries + "colNamesWithBloomFilter:"
+                    + colNamesWithBloomFilter);
+
+            bloomFilterOpts = new BloomFilterOptBuilder().enableCols(colNamesWithBloomFilter)
+                    .expectedEntries(expectedEntries).falsePositiveProbabilities(FPPs).build(schema);
+        }
+
+        if ("TRUE".equals(isHistogramEnabled)) {
+            String colNamesWithHistogram = conf.get(ParquetOutputFormat.HISTOGRAM_COL_NAME, "");
+            String boundMin = conf.get(ParquetOutputFormat.BOUND_MIN, "");
+            String boundMax = conf.get(ParquetOutputFormat.BOUND_MAX, "");
+            String bucketsNumber = conf.get(ParquetOutputFormat.BUCKETS_NUMBER);
+            LOG.info("Bound Range [ " + boundMin + ", " + boundMax + "], : Number of buckets"
+                    + bucketsNumber);
+
+            histogramOpts = new HistogramOptBuilder().enableCols(colNamesWithHistogram)
+                    .setMinValues(boundMin).setMaxValues(boundMax).setBucketsCounts(bucketsNumber).build(schema);
+        }
+
+        statisticsOpts = new StatisticsOpts(bloomFilterOpts, histogramOpts);
+    }
 
   /**
    * start the file

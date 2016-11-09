@@ -211,24 +211,24 @@ public class TestStatistics {
     int v2 = d[3];
     int v3 = d[6];
 
-    Assert.assertFalse(statistics.test(d[1], d[2]));
-    Assert.assertFalse(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertFalse(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertFalse(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v1);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertFalse(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertFalse(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v2);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertTrue(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertTrue(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v3);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertTrue(statistics.test(d[4], d[5]));
-    Assert.assertTrue(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertTrue(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertTrue(statistics.test(d[7].longValue(), d[8].longValue()));
   }
 
   private void checkHistogram(Double[] d, HistogramStatistics statistics) {
@@ -236,24 +236,24 @@ public class TestStatistics {
     Double v2 = d[3];
     Double v3 = d[6];
 
-    Assert.assertFalse(statistics.test(d[1], d[2]));
-    Assert.assertFalse(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertFalse(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertFalse(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v1);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertFalse(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertFalse(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v2);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertTrue(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertTrue(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v3);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertTrue(statistics.test(d[4], d[5]));
-    Assert.assertTrue(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertTrue(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertTrue(statistics.test(d[7].longValue(), d[8].longValue()));
   }
 
   private void checkHistogram(Long[] d, HistogramStatistics statistics) {
@@ -287,24 +287,24 @@ public class TestStatistics {
     Float v2 = d[3];
     Float v3 = d[6];
 
-    Assert.assertFalse(statistics.test(d[1], d[2]));
-    Assert.assertFalse(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertFalse(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertFalse(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v1);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertFalse(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertFalse(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v2);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertTrue(statistics.test(d[4], d[5]));
-    Assert.assertFalse(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertTrue(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertFalse(statistics.test(d[7].longValue(), d[8].longValue()));
 
     ((Statistics) statistics).updateStats(v3);
-    Assert.assertTrue(statistics.test(d[1], d[2]));
-    Assert.assertTrue(statistics.test(d[4], d[5]));
-    Assert.assertTrue(statistics.test(d[7], d[8]));
+    Assert.assertTrue(statistics.test(d[1].longValue(), d[2].longValue()));
+    Assert.assertTrue(statistics.test(d[4].longValue(), d[5].longValue()));
+    Assert.assertTrue(statistics.test(d[7].longValue(), d[8].longValue()));
   }
 
   private static ColumnStatisticsOpts getHistogramOpts(

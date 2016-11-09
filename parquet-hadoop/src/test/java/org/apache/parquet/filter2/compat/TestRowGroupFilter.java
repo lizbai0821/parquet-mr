@@ -23,17 +23,16 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.primitives.Longs;
-import org.apache.parquet.column.statistics.ColumnStatisticsOpts;
-import org.apache.parquet.column.statistics.LongStatistics;
-import org.apache.parquet.column.statistics.StatisticsOpts;
+import org.apache.parquet.column.statistics.*;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOptBuilder;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
 import org.apache.parquet.column.statistics.histogram.HistogramOptBuilder;
 import org.apache.parquet.column.statistics.histogram.HistogramOpts;
+import org.apache.parquet.filter2.predicate.Operators;
 import org.junit.Test;
 
-import org.apache.parquet.column.statistics.IntStatistics;
 import org.apache.parquet.filter2.predicate.Operators.IntColumn;
+import org.apache.parquet.filter2.predicate.Operators.LongColumn;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.MessageTypeParser;
@@ -196,7 +195,7 @@ public class TestRowGroupFilter {
         List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
 
         MessageType schema =
-                MessageTypeParser.parseMessageType("message Document { optional int32 foo; }");
+                MessageTypeParser.parseMessageType("message Document { optional int64 foo; }");
 
         HistogramOpts opts = new HistogramOptBuilder()
                 .enableCols("foo").setMinValues("0").setMaxValues("150").setBucketsCounts("5").build(schema);
@@ -204,7 +203,7 @@ public class TestRowGroupFilter {
                 new StatisticsOpts(null, opts).getStatistics(schema.getColumnDescription(new String[]{"foo"}));
         LongStatistics stats1 = new LongStatistics(columnStatisticsOpts);
         stats1.setMinMax(10L, 100L);
-        stats1.setNumNulls(4);
+        stats1.setNumNulls(4L);
         stats1.add(25L);
         stats1.add(33L);
         stats1.add(83L);
@@ -212,8 +211,8 @@ public class TestRowGroupFilter {
         blocks.add(b1);
 
         LongStatistics stats2 = new LongStatistics(columnStatisticsOpts);
-        stats2.setMinMax(8, 102);
-        stats2.setNumNulls(0);
+        stats2.setMinMax(8L, 102L);
+        stats2.setNumNulls(0L);
         stats2.add(12L);
         stats2.add(28L);
         stats2.add(90L);
@@ -221,16 +220,102 @@ public class TestRowGroupFilter {
         blocks.add(b2);
 
         LongStatistics stats3 = new LongStatistics(columnStatisticsOpts);
-        stats3.setMinMax(3, 90);
-        stats3.setNumNulls(12);
+        stats3.setMinMax(3L, 90L);
+        stats3.setNumNulls(12L);
         stats3.add(20L);
         stats3.add(90L);
         BlockMetaData b3 = makeBlockFromStats(stats3, 303);
         blocks.add(b3);
 
-        IntColumn foo = intColumn("foo");
+        LongColumn foo = longColumn("foo");
 
-        List<BlockMetaData> filtered = RowGroupFilter.filterRowGroups(FilterCompat.get(and(gt(foo, 30),lt(foo, 40))), blocks, schema);
+        List<BlockMetaData> filtered = RowGroupFilter.filterRowGroups(FilterCompat.get(and(gt(foo, 30L),lt(foo, 40L))), blocks, schema);
+        assertEquals(Arrays.asList(b1), filtered);
+    }
+
+    @Test
+    public void testFloatHistogram() {
+        List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
+
+        MessageType schema =
+                MessageTypeParser.parseMessageType("message Document { optional float foo; }");
+
+        HistogramOpts opts = new HistogramOptBuilder()
+                .enableCols("foo").setMinValues("0").setMaxValues("150").setBucketsCounts("5").build(schema);
+        ColumnStatisticsOpts columnStatisticsOpts =
+                new StatisticsOpts(null, opts).getStatistics(schema.getColumnDescription(new String[]{"foo"}));
+        FloatStatistics stats1 = new FloatStatistics(columnStatisticsOpts);
+        stats1.setMinMax(10.0f, 100.0f);
+        stats1.setNumNulls(4L);
+        stats1.add(25.0f);
+        stats1.add(33.0f);
+        stats1.add(83.0f);
+        BlockMetaData b1 = makeBlockFromStats(stats1, 301);
+        blocks.add(b1);
+
+        FloatStatistics stats2 = new FloatStatistics(columnStatisticsOpts);
+        stats2.setMinMax(8.0f, 102.0f);
+        stats2.setNumNulls(0L);
+        stats2.add(12.0f);
+        stats2.add(28.0f);
+        stats2.add(90.0f);
+        BlockMetaData b2 = makeBlockFromStats(stats2, 302);
+        blocks.add(b2);
+
+        FloatStatistics stats3 = new FloatStatistics(columnStatisticsOpts);
+        stats3.setMinMax(3.0f, 90.0f);
+        stats3.setNumNulls(12L);
+        stats3.add(20.0f);
+        stats3.add(90.0f);
+        BlockMetaData b3 = makeBlockFromStats(stats3, 303);
+        blocks.add(b3);
+
+        Operators.FloatColumn foo = floatColumn("foo");
+
+        List<BlockMetaData> filtered = RowGroupFilter.filterRowGroups(FilterCompat.get(and(gt(foo, 30.0f),lt(foo, 40.0f))), blocks, schema);
+        assertEquals(Arrays.asList(b1), filtered);
+    }
+
+    @Test
+    public void testDoubleHistogram() {
+        List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
+
+        MessageType schema =
+                MessageTypeParser.parseMessageType("message Document { optional double foo; }");
+
+        HistogramOpts opts = new HistogramOptBuilder()
+                .enableCols("foo").setMinValues("0").setMaxValues("150").setBucketsCounts("5").build(schema);
+        ColumnStatisticsOpts columnStatisticsOpts =
+                new StatisticsOpts(null, opts).getStatistics(schema.getColumnDescription(new String[]{"foo"}));
+        DoubleStatistics stats1 = new DoubleStatistics(columnStatisticsOpts);
+        stats1.setMinMax(10.0, 100.0);
+        stats1.setNumNulls(4L);
+        stats1.add(25.0);
+        stats1.add(33.0);
+        stats1.add(83.0);
+        BlockMetaData b1 = makeBlockFromStats(stats1, 301);
+        blocks.add(b1);
+
+        DoubleStatistics stats2 = new DoubleStatistics(columnStatisticsOpts);
+        stats2.setMinMax(8.0, 102.0);
+        stats2.setNumNulls(0L);
+        stats2.add(12.0);
+        stats2.add(28.0);
+        stats2.add(90.0);
+        BlockMetaData b2 = makeBlockFromStats(stats2, 302);
+        blocks.add(b2);
+
+        DoubleStatistics stats3 = new DoubleStatistics(columnStatisticsOpts);
+        stats3.setMinMax(3.0, 90.0);
+        stats3.setNumNulls(12L);
+        stats3.add(20.0);
+        stats3.add(90.0);
+        BlockMetaData b3 = makeBlockFromStats(stats3, 303);
+        blocks.add(b3);
+
+        Operators.DoubleColumn foo = doubleColumn("foo");
+
+        List<BlockMetaData> filtered = RowGroupFilter.filterRowGroups(FilterCompat.get(and(gt(foo, 30.0),lt(foo, 40.0))), blocks, schema);
         assertEquals(Arrays.asList(b1), filtered);
     }
 

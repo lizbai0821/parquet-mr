@@ -50,7 +50,7 @@ public class FilteredColumnRange {
             String[] columnAndValue = planText.substring(start + 3, end).split(", ");
             String columnName = columnAndValue[0];
             String columnValue = columnAndValue[1];
-            long greaterValue = Long.valueOf(columnValue);
+            long greaterValue = (long) (Double.parseDouble(columnValue));
             columnNameSet.add(columnName);
 
             InRange inRange = null;
@@ -74,7 +74,7 @@ public class FilteredColumnRange {
                 columnRangeMap.remove(columnName);
             } else {
                 int end = planText.indexOf(")", start);
-                long lessValue = Long.valueOf(planText.substring(start + "lt(".length() + columnName.length() + ", ".length(), end));
+                long lessValue = (long) (Double.parseDouble(planText.substring(start + "lt(".length() + columnName.length() + ", ".length(), end)));
                 InRange inRange = columnRangeMap.get(columnName);
                 if (lessValue < inRange.getUpper()) {
                     inRange.setUpper(lessValue);

@@ -525,12 +525,12 @@ public class TestParquetFileWriter {
     IntStatistics convertedBackStats =
             (IntStatistics) org.apache.parquet.format.converter.ParquetMetadataConverter
                     .fromParquetStatisticsWithBH(createdBy, thriftStats, PrimitiveTypeName.INT32);
-    assertTrue(parquetMRstats.test(0,20));
-    assertTrue(convertedBackStats.test(0,200));
-    assertFalse(parquetMRstats.test(40,60));
-    assertFalse(convertedBackStats.test(40,60));
-    assertFalse(parquetMRstats.test(60, 80));
-    assertFalse(convertedBackStats.test(60, 80));
+    assertTrue(parquetMRstats.test(0L,20L));
+    assertTrue(convertedBackStats.test(0L,200L));
+    assertFalse(parquetMRstats.test(40L,60L));
+    assertFalse(convertedBackStats.test(40L,60L));
+    assertFalse(parquetMRstats.test(60L, 80L));
+    assertFalse(convertedBackStats.test(60L, 80L));
 
     parquetMRstats.updateStats(v2);
     thriftStats = org.apache.parquet.format.converter.ParquetMetadataConverter
@@ -538,12 +538,12 @@ public class TestParquetFileWriter {
     convertedBackStats =
             (IntStatistics) org.apache.parquet.format.converter.ParquetMetadataConverter
                     .fromParquetStatisticsWithBH(createdBy, thriftStats, PrimitiveTypeName.INT32);
-    assertTrue(parquetMRstats.test(0,20));
-    assertTrue(convertedBackStats.test(0,20));
-    assertTrue(parquetMRstats.test(40,50));
-    assertTrue(convertedBackStats.test(40, 50));
-    assertFalse(parquetMRstats.test(70, 80));
-    assertFalse(convertedBackStats.test(70, 80));
+    assertTrue(parquetMRstats.test(0L,20L));
+    assertTrue(convertedBackStats.test(0L,20L));
+    assertTrue(parquetMRstats.test(40L,50L));
+    assertTrue(convertedBackStats.test(40L, 50L));
+    assertFalse(parquetMRstats.test(70L, 80L));
+    assertFalse(convertedBackStats.test(70L, 80L));
 
     parquetMRstats.updateStats(v3);
     thriftStats = org.apache.parquet.format.converter.ParquetMetadataConverter
@@ -551,12 +551,12 @@ public class TestParquetFileWriter {
     convertedBackStats =
             (IntStatistics) org.apache.parquet.format.converter.ParquetMetadataConverter
                     .fromParquetStatisticsWithBH(createdBy, thriftStats, PrimitiveTypeName.INT32);
-    assertTrue(parquetMRstats.test(0,20));
-    assertTrue(convertedBackStats.test(0,20));
-    assertTrue(parquetMRstats.test(40,60));
-    assertTrue(convertedBackStats.test(40,60));
-    assertTrue(parquetMRstats.test(60, 80));
-    assertTrue(convertedBackStats.test(60, 80));
+    assertTrue(parquetMRstats.test(0L,20L));
+    assertTrue(convertedBackStats.test(0L,20L));
+    assertTrue(parquetMRstats.test(40L,60L));
+    assertTrue(convertedBackStats.test(40L,60L));
+    assertTrue(parquetMRstats.test(60L, 80L));
+    assertTrue(convertedBackStats.test(60L, 80L));
   }
 
   @Test

@@ -48,7 +48,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
-import org.apache.parquet.column.statistics.LongStatistics;
+import org.apache.parquet.column.statistics.*;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,8 +57,6 @@ import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ColumnReader;
 import org.apache.parquet.column.Encoding;
-import org.apache.parquet.column.statistics.BinaryStatistics;
-import org.apache.parquet.column.statistics.IntStatistics;
 import org.apache.parquet.filter.RecordFilter;
 import org.apache.parquet.filter.UnboundRecordFilter;
 import org.apache.parquet.filter2.compat.FilterCompat;
@@ -352,7 +350,7 @@ public class TestInputFormat {
     BlockMetaData blockMetaData = new BlockMetaData();
 
     ColumnChunkMetaData column = ColumnChunkMetaData.get(ColumnPath.get("foo"),
-            PrimitiveTypeName.INT32,
+            PrimitiveTypeName.INT64,
             CompressionCodecName.GZIP,
             new HashSet<Encoding>(Arrays.asList(Encoding.PLAIN)),
             stats,
@@ -363,6 +361,35 @@ public class TestInputFormat {
     return blockMetaData;
   }
 
+  public static BlockMetaData makeBlockFromStats(FloatStatistics stats, long valueCount) {
+    BlockMetaData blockMetaData = new BlockMetaData();
+
+    ColumnChunkMetaData column = ColumnChunkMetaData.get(ColumnPath.get("foo"),
+            PrimitiveTypeName.FLOAT,
+            CompressionCodecName.GZIP,
+            new HashSet<Encoding>(Arrays.asList(Encoding.PLAIN)),
+            stats,
+            100l, 100l, valueCount, 100l, 100l);
+    blockMetaData.addColumn(column);
+    blockMetaData.setTotalByteSize(200l);
+    blockMetaData.setRowCount(valueCount);
+    return blockMetaData;
+  }
+
+  public static BlockMetaData makeBlockFromStats(DoubleStatistics stats, long valueCount) {
+    BlockMetaData blockMetaData = new BlockMetaData();
+
+    ColumnChunkMetaData column = ColumnChunkMetaData.get(ColumnPath.get("foo"),
+            PrimitiveTypeName.DOUBLE,
+            CompressionCodecName.GZIP,
+            new HashSet<Encoding>(Arrays.asList(Encoding.PLAIN)),
+            stats,
+            100l, 100l, valueCount, 100l, 100l);
+    blockMetaData.addColumn(column);
+    blockMetaData.setTotalByteSize(200l);
+    blockMetaData.setRowCount(valueCount);
+    return blockMetaData;
+  }
   @Test
   public void testFooterCacheValueIsCurrent() throws IOException, InterruptedException {
     File tempFile = getTempFile();

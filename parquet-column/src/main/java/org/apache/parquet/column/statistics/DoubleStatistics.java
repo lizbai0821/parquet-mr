@@ -204,9 +204,7 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
     }
 
     @Override
-    public boolean test(Double value1, Double value2) {
-        return histogram.testDouble(value1, value2);
-    }
+    public boolean test(Long value1, Long value2) { return histogram.testLong(value1, value2);}
 
     @Override
     public boolean isBloomFilterEnabled() {
@@ -215,6 +213,6 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
 
     @Override
     public boolean isHistogramEnabled() {
-        return false;
+        return isHistogramEnabled;
     }
 }

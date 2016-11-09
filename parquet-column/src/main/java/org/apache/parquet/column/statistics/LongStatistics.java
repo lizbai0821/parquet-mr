@@ -203,9 +203,7 @@ public class LongStatistics extends Statistics<Long> implements BloomFilterStati
     }
 
     @Override
-    public boolean test(Long value1, Long value2) {
-        return histogram.testLong(value1,value2);
-    }
+    public boolean test(Long value1, Long value2) { return histogram.testLong(value1, value2);}
 
     @Override
     public boolean isBloomFilterEnabled() {

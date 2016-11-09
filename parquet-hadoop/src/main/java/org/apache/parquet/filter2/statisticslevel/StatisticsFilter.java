@@ -102,7 +102,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
                 HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
                 if (!histogramStatistics.isHistogramEnabled())
                     continue;
-                if (histogramStatistics.test(inRange.getLower().intValue(), inRange.getUpper().intValue())) {
+                if (histogramStatistics.test(inRange.getLower(), inRange.getUpper())) {
                     hit = true;
                     break;
                 }

@@ -25,7 +25,7 @@ public interface HistogramStatistics<T> {
 
     Histogram getHistogram();
 
-    boolean test(T value1, T value2);
+    boolean test(Long value1, Long value2);
 
     boolean isHistogramEnabled();
 

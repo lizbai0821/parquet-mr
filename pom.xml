@@ -9,11 +9,11 @@
 
   <groupId>org.apache.parquet</groupId>
   <artifactId>parquet</artifactId>
-  <version>1.8.3-SNAPSHOT</version>
+  <version>1.8.3-SNAPSHOT-POLYU</version>
   <packaging>pom</packaging>
 
   <name>Apache Parquet MR</name>
-  <url>https://parquet.apache.org</url>
+  <url>https://p2arquet.apache.org</url>
   <description>Parquet is a columnar storage format that supports nested data. This provides the java implementation.</description>
 
   <scm>
@@ -73,7 +73,7 @@
     <hadoop1.version>1.1.0</hadoop1.version>
     <cascading.version>2.5.3</cascading.version>
     <cascading3.version>3.0.3</cascading3.version>
-    <parquet.format.version>2.3.2-SNAPSHOT</parquet.format.version>
+    <parquet.format.version>2.3.2-SNAPSHOT-POLYU</parquet.format.version>
     <log4j.version>1.2.17</log4j.version>
     <previous.version>1.7.0</previous.version>
     <thrift.executable>thrift</thrift.executable>

@@ -48,6 +48,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapreduce.Job;
+import org.apache.parquet.column.statistics.LongStatistics;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -341,6 +342,21 @@ public class TestInputFormat {
         new HashSet<Encoding>(Arrays.asList(Encoding.PLAIN)),
         stats,
         100l, 100l, valueCount, 100l, 100l);
+    blockMetaData.addColumn(column);
+    blockMetaData.setTotalByteSize(200l);
+    blockMetaData.setRowCount(valueCount);
+    return blockMetaData;
+  }
+
+  public static BlockMetaData makeBlockFromStats(LongStatistics stats, long valueCount) {
+    BlockMetaData blockMetaData = new BlockMetaData();
+
+    ColumnChunkMetaData column = ColumnChunkMetaData.get(ColumnPath.get("foo"),
+            PrimitiveTypeName.INT32,
+            CompressionCodecName.GZIP,
+            new HashSet<Encoding>(Arrays.asList(Encoding.PLAIN)),
+            stats,
+            100l, 100l, valueCount, 100l, 100l);
     blockMetaData.addColumn(column);
     blockMetaData.setTotalByteSize(200l);
     blockMetaData.setRowCount(valueCount);

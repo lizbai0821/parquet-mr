@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.google.common.primitives.Longs;
 import org.apache.parquet.column.statistics.ColumnStatisticsOpts;
+import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.parquet.column.statistics.StatisticsOpts;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOptBuilder;
 import org.apache.parquet.column.statistics.bloomfilter.BloomFilterOpts;
@@ -180,6 +182,49 @@ public class TestRowGroupFilter {
         stats3.setNumNulls(12);
         stats3.add(20);
         stats1.add(90);
+        BlockMetaData b3 = makeBlockFromStats(stats3, 303);
+        blocks.add(b3);
+
+        IntColumn foo = intColumn("foo");
+
+        List<BlockMetaData> filtered = RowGroupFilter.filterRowGroups(FilterCompat.get(and(gt(foo, 30),lt(foo, 40))), blocks, schema);
+        assertEquals(Arrays.asList(b1), filtered);
+    }
+
+    @Test
+    public void testLongHistogram() {
+        List<BlockMetaData> blocks = new ArrayList<BlockMetaData>();
+
+        MessageType schema =
+                MessageTypeParser.parseMessageType("message Document { optional int32 foo; }");
+
+        HistogramOpts opts = new HistogramOptBuilder()
+                .enableCols("foo").setMinValues("0").setMaxValues("150").setBucketsCounts("5").build(schema);
+        ColumnStatisticsOpts columnStatisticsOpts =
+                new StatisticsOpts(null, opts).getStatistics(schema.getColumnDescription(new String[]{"foo"}));
+        LongStatistics stats1 = new LongStatistics(columnStatisticsOpts);
+        stats1.setMinMax(10L, 100L);
+        stats1.setNumNulls(4);
+        stats1.add(25L);
+        stats1.add(33L);
+        stats1.add(83L);
+        BlockMetaData b1 = makeBlockFromStats(stats1, 301);
+        blocks.add(b1);
+
+        LongStatistics stats2 = new LongStatistics(columnStatisticsOpts);
+        stats2.setMinMax(8, 102);
+        stats2.setNumNulls(0);
+        stats2.add(12L);
+        stats2.add(28L);
+        stats2.add(90L);
+        BlockMetaData b2 = makeBlockFromStats(stats2, 302);
+        blocks.add(b2);
+
+        LongStatistics stats3 = new LongStatistics(columnStatisticsOpts);
+        stats3.setMinMax(3, 90);
+        stats3.setNumNulls(12);
+        stats3.add(20L);
+        stats3.add(90L);
         BlockMetaData b3 = makeBlockFromStats(stats3, 303);
         blocks.add(b3);
 

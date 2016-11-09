@@ -46,6 +46,9 @@ public class HistogramOptBuilder {
         String[] maxList = maxValues.split(",");
         String[] countList = bucketsCounts.split(",");
 
+
+
+
         Map<ColumnDescriptor, HistogramOpts.HistogramEntry> columnDescriptorMap = new HashMap<>();
 
         for (int i = 0; i < cols.length; i++) {

@@ -74,18 +74,26 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
     private static final boolean BLOCK_MIGHT_MATCH = false;
     private static final boolean BLOCK_CANNOT_MATCH = true;
     private Logger logger = LoggerFactory.getLogger(getClass());
+    private static Map<String, InRange> columnRangeMap;
+    private static boolean haveRange = false;
+
 
     public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
         checkNotNull(pred, "pred");
         checkNotNull(columns, "columns");
-        boolean drop = pred.accept(new StatisticsFilter(columns));
-        if (drop) {
-            return true;
-        }
 
-        //utilize histogram to decide
         String planText = pred.toString();
         FilteredColumnRange filteredColumnRange = new FilteredColumnRange(planText);
+        columnRangeMap = filteredColumnRange.getColumnRangeMap();
+        if (columnRangeMap.size() != 0) {
+            haveRange = true;
+        }
+
+        return pred.accept(new StatisticsFilter(columns));
+
+
+        /*
+        //utilize histogram to decide
         Map<String, InRange> columnRangeMap = filteredColumnRange.getColumnRangeMap();
         if (columnRangeMap.size() == 0)
             return false;
@@ -110,6 +118,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             }
         }
         return hit == true ? false : true;
+        */
     }
 
     private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();
@@ -254,7 +263,29 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
         T value = lt.getValue();
 
         // drop if value <= min
-        return value.compareTo(stats.genericGetMin()) <= 0;
+        //return value.compareTo(stats.genericGetMin()) <= 0;
+
+        if (value.compareTo(stats.genericGetMin()) <= 0) {
+            return true;
+        } else {
+            if (haveRange == false)
+                return false;
+            String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
+            InRange inRange = columnRangeMap.get(columnName);
+            if (inRange == null)
+                return false;
+
+            if (!(stats instanceof HistogramStatistics)) {
+                return false;
+            }
+
+            HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
+            if (!histogramStatistics.isHistogramEnabled()) {
+                return false;
+            }
+
+            return !histogramStatistics.test(inRange.getLower(), (long)Double.parseDouble(value.toString()));
+        }
     }
 
     @Override
@@ -316,7 +347,30 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
         T value = gt.getValue();
 
         // drop if value >= max
-        return value.compareTo(stats.genericGetMax()) >= 0;
+        //return value.compareTo(stats.genericGetMax()) >= 0;
+
+        if (value.compareTo(stats.genericGetMax()) >= 0) {
+            return true;
+        } else {
+            if (haveRange == false)
+                return false;
+            String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
+            InRange inRange = columnRangeMap.get(columnName);
+            if (inRange == null)
+                return false;
+
+            if (!(stats instanceof HistogramStatistics)) {
+                return false;
+            }
+
+            HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
+            if (!histogramStatistics.isHistogramEnabled()) {
+                return false;
+            }
+
+            return !histogramStatistics.test((long)Double.parseDouble(value.toString()), inRange.getUpper());
+        }
+
     }
 
     @Override
@@ -411,5 +465,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
     public <T extends Comparable<T>, U extends UserDefinedPredicate<T>> Boolean visit(LogicalNotUserDefined<T, U> lnud) {
         return visit(lnud.getUserDefined(), true);
     }
+
+
 
 }

@@ -25,8 +25,6 @@ import java.util.*;
  */
 public class FilteredColumnRange {
 
-
-
     public Map<String, InRange> columnRangeMap = new HashMap<>();
 
     public FilteredColumnRange(String planText) {

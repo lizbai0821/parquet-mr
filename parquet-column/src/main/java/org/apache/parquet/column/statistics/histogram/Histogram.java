@@ -18,6 +18,9 @@
  */
 package org.apache.parquet.column.statistics.histogram;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * kaiser ding Histogram
  */
@@ -94,6 +97,8 @@ public class Histogram {
     }
 
     public boolean testLong (long low, long up) {
+        if(low<min || up>max)
+            return true;
         int bucket_low = (int) (((double)(low - min) / (max - min)) * bucketsCount);
         bucket_low = Math.min(bucket_low, counters.length - 1);
 

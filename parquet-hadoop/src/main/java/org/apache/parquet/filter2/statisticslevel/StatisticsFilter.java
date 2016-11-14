@@ -73,7 +73,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
 
     private static final boolean BLOCK_MIGHT_MATCH = false;
     private static final boolean BLOCK_CANNOT_MATCH = true;
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private static Logger logger = LoggerFactory.getLogger(StatisticsFilter.class);
 
     public static boolean canDrop(FilterPredicate pred, List<ColumnChunkMetaData> columns) {
         checkNotNull(pred, "pred");
@@ -92,6 +92,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
 
         //test whether the range hit histogram
         boolean hit = false;
+        boolean complete_info = true;
         for (ColumnChunkMetaData chunk : columns) {
             String columnName = chunk.getPath().toString().substring(1, chunk.getPath().toString().length() - 1);
             InRange inRange = columnRangeMap.get(columnName);
@@ -99,17 +100,25 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
                 continue;
             Statistics stats = chunk.getStatistics();
             if (stats instanceof HistogramStatistics) {
+                logger.info("Histogram is instanced");
                 HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
                 if (!histogramStatistics.isHistogramEnabled())
+                {
+                    logger.info("Histogram is null at "+columnName);
+                    complete_info = false;
                     continue;
+                }
                 if (histogramStatistics.test(inRange.getLower(), inRange.getUpper())) {
+                    logger.info("Histogram is utilized for "+columnName);
                     hit = true;
                     break;
                 }
 
             }
         }
-        return hit == true ? false : true;
+        if (complete_info && (!hit))
+            return true;
+        return false;
     }
 
     private final Map<ColumnPath, ColumnChunkMetaData> columns = new HashMap<ColumnPath, ColumnChunkMetaData>();

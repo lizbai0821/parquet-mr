@@ -124,5 +124,38 @@ public class Histogram {
     public boolean testDouble (double low, double up){
         return testLong((long)low, (long)up);
     }
+
+
+
+
+
+    public Long QualityLong (long low, long up) {
+        if(low>max || up<min)
+            return 0L;
+        int bucket_low = (int) (((double)(low - min) / (max - min)) * bucketsCount);
+        bucket_low = Math.max(bucket_low, 0);
+
+        int bucket_up = (int) (((double)(up - min) / (max - min)) * bucketsCount);
+        bucket_up = Math.min(bucket_up, counters.length - 1);
+
+        Long result = 0L;
+        while(bucket_low <= bucket_up){
+            result+= buckets[bucket_low];
+            bucket_low++;
+        }
+        return result;
+    }
+
+    public Long QualityFloat(float low, float up){
+        return QualityInteger((int)low, (int)up);
+    }
+
+    public Long QualityInteger (int low, int up){
+        return QualityLong(low, up);
+    }
+
+    public Long QualityDouble (double low, double up){
+        return QualityLong((long)low, (long)up);
+    }
 }
 

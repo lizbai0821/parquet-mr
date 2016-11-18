@@ -295,7 +295,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             if (!histogramStatistics.isHistogramEnabled()) {
                 return false;
             }
-
+            logger.info("Histogram is used for " + columnName);
             return !histogramStatistics.test(inRange.getLower(), (long)Double.parseDouble(value.toString()));
         }
     }
@@ -379,7 +379,7 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             if (!histogramStatistics.isHistogramEnabled()) {
                 return false;
             }
-
+            logger.info("Histogram is used for " + columnName);
             return !histogramStatistics.test((long)Double.parseDouble(value.toString()), inRange.getUpper());
         }
 

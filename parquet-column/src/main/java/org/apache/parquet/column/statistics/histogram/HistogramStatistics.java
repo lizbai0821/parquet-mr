@@ -27,6 +27,8 @@ public interface HistogramStatistics<T> {
 
     boolean test(Long value1, Long value2);
 
+    Long Quality(Long value1, Long value2);
+
     boolean isHistogramEnabled();
 
     void mergeHistogram(Statistics stats);

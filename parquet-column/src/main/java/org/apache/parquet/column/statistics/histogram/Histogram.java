@@ -21,10 +21,12 @@ package org.apache.parquet.column.statistics.histogram;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
+
 /**
  * kaiser ding Histogram
  */
-public class Histogram {
+public class Histogram implements Serializable{
 
     protected long min; // lower bound
     protected long max; // upper bound
@@ -126,22 +128,30 @@ public class Histogram {
     }
 
 
-
-
-
     public Long QualityLong (long low, long up) {
         if(low>max || up<min)
             return 0L;
-        int bucket_low = (int) (((double)(low - min) / (max - min)) * bucketsCount);
-        bucket_low = Math.max(bucket_low, 0);
+        double bucket_low_f = (((double)(low - min) / (max - min)) * bucketsCount);
+        bucket_low_f = Math.max(bucket_low_f, 0);
 
-        int bucket_up = (int) (((double)(up - min) / (max - min)) * bucketsCount);
-        bucket_up = Math.min(bucket_up, counters.length - 1);
+        int bucket_low = (int) bucket_low_f+1;
+
+        double bucket_up_f = (((double)(up - min) / (max - min)) * bucketsCount);
+        bucket_up_f = Math.min(bucket_up_f, counters.length - 1);
+
+        int bucket_up = (int) bucket_up_f;
 
         Long result = 0L;
-        while(bucket_low <= bucket_up){
-            result+= buckets[bucket_low];
+        while(bucket_low < bucket_up){
+            result+= counters[bucket_low];
             bucket_low++;
+        }
+
+        if(bucket_low-1 == bucket_up){
+            result+= (int)(counters[bucket_up]*(bucket_up_f-bucket_low_f));
+        }
+        else {
+            result = result + (int)(counters[bucket_low-1]*((float)bucket_low-bucket_low_f)) + (int)(counters[bucket_up]*(bucket_up_f-(float)bucket_up));
         }
         return result;
     }

@@ -26,7 +26,9 @@ import org.apache.parquet.column.statistics.histogram.Histogram;
 import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 
-public class LongStatistics extends Statistics<Long> implements BloomFilterStatistics<Long>, HistogramStatistics<Long> {
+import java.io.Serializable;
+
+public class LongStatistics extends Statistics<Long> implements BloomFilterStatistics<Long>, HistogramStatistics<Long>, Serializable {
     private long max;
     private long min;
     private BloomFilter bloomFilter;

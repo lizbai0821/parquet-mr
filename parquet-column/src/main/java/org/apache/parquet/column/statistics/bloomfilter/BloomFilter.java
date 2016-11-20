@@ -20,6 +20,7 @@ package org.apache.parquet.column.statistics.bloomfilter;
 
 import org.apache.parquet.io.api.Binary;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
 /**
@@ -40,7 +41,7 @@ import java.util.Arrays;
  * collisions for specific sequence of repeating bytes. Check the following link for more info
  * https://code.google.com/p/smhasher/wiki/MurmurHash2Flaw
  */
-public class BloomFilter {
+public class BloomFilter implements Serializable{
     public static final double DEFAULT_FALSE_POSITIVE_PROBABILITY = 0.05;
     protected BitSet bitSet;
     protected int numBits;

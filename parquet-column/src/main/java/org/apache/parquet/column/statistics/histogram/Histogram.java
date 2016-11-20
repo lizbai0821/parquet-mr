@@ -139,6 +139,9 @@ public class Histogram implements Serializable{
         double bucket_up_f = (((double)(up - min) / (max - min)) * bucketsCount);
         bucket_up_f = Math.min(bucket_up_f, counters.length - 1);
 
+        if(bucket_low_f == bucket_up_f)
+            bucket_up_f+=0.01;
+
         int bucket_up = (int) bucket_up_f;
 
         Long result = 0L;

@@ -26,7 +26,9 @@ import org.apache.parquet.column.statistics.histogram.Histogram;
 import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 
-public class DoubleStatistics extends Statistics<Double> implements BloomFilterStatistics<Double>, HistogramStatistics<Double> {
+import java.io.Serializable;
+
+public class DoubleStatistics extends Statistics<Double> implements BloomFilterStatistics<Double>, HistogramStatistics<Double>, Serializable {
 
     private double max;
     private double min;

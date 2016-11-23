@@ -27,7 +27,9 @@ import org.apache.parquet.column.statistics.histogram.HistogramOpts;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.column.values.bitpacking.Packer;
 
-public class FloatStatistics extends Statistics<Float> implements BloomFilterStatistics<Float>, HistogramStatistics<Float> {
+import java.io.Serializable;
+
+public class FloatStatistics extends Statistics<Float> implements BloomFilterStatistics<Float>, HistogramStatistics<Float>, Serializable {
 
     private float max;
     private float min;

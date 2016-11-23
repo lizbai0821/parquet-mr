@@ -25,12 +25,16 @@ import org.apache.parquet.column.statistics.histogram.Histogram;
 import org.apache.parquet.column.statistics.histogram.HistogramStatistics;
 import org.apache.parquet.io.api.Binary;
 
-public class BinaryStatistics extends Statistics<Binary> implements BloomFilterStatistics<Binary> {
+import java.io.Serializable;
 
-    private Binary max;
-    private Binary min;
-    private BloomFilter bloomFilter;
-    private boolean isBloomFilterEnabled = false;
+public class BinaryStatistics extends Statistics<Binary> implements BloomFilterStatistics<Binary>, HistogramStatistics<Binary>, Serializable {
+
+  private Binary max;
+  private Binary min;
+  private BloomFilter bloomFilter;
+  private boolean isBloomFilterEnabled = false;
+  private Histogram histogram;
+  private boolean isHistogramEnabled = false;
 
     public BinaryStatistics(ColumnStatisticsOpts columnStatisticsOpts) {
         super();
@@ -71,6 +75,11 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
         if (isBloomFilterEnabled && stats instanceof BloomFilterStatistics) {
             this.bloomFilter.merge(((BloomFilterStatistics) stats).getBloomFilter());
         }
+    }
+
+    @Override
+    public void mergeHistogram(Statistics stats) {
+        // Do nothing
     }
 
     @Override
@@ -192,12 +201,24 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
     }
 
     @Override
+    public Histogram getHistogram() {return histogram;}
+
+    @Override
     public boolean test(Binary value) {
         return bloomFilter.testBinary(value);
     }
 
     @Override
+    public boolean test(Long value1, Long value2) {return true;}
+
+    @Override
+    public Long Quality(Long value1, Long value2) {return 0L;}
+
+    @Override
     public boolean isBloomFilterEnabled() {
         return isBloomFilterEnabled;
     }
+
+    @Override
+    public boolean isHistogramEnabled() {return isHistogramEnabled;}
 }

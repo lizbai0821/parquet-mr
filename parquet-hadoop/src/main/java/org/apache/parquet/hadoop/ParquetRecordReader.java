@@ -164,9 +164,13 @@ public class ParquetRecordReader<T> extends RecordReader<Void, T> {
         offsets(rowGroupOffsets) :
         range(split.getStart(), split.getEnd()));
 
-    // open a reader with the metadata filter
-    ParquetFileReader reader = ParquetFileReader.open(
-        configuration, path, metadataFilter);
+    // option to skip reading metadata
+    boolean readMetadata = configuration.getBoolean(ParquetOutputFormat.READ_METADATA, true);
+    ParquetFileReader reader = readMetadata ?
+      ParquetFileReader.open(
+        configuration, path, metadataFilter):
+      ParquetFileReader.open(
+        configuration, path);
 
     if (rowGroupOffsets != null) {
       // verify a row group was found for each offset

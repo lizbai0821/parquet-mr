@@ -31,7 +31,7 @@ public class BinaryStatistics extends Statistics<Binary> implements BloomFilterS
 
   private Binary max;
   private Binary min;
-  private BloomFilter bloomFilter;
+  private transient BloomFilter bloomFilter;
   private boolean isBloomFilterEnabled = false;
   private Histogram histogram;
   private boolean isHistogramEnabled = false;

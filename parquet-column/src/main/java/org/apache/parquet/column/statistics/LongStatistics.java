@@ -31,7 +31,7 @@ import java.io.Serializable;
 public class LongStatistics extends Statistics<Long> implements BloomFilterStatistics<Long>, HistogramStatistics<Long>, Serializable {
     private long max;
     private long min;
-    private BloomFilter bloomFilter;
+    private transient BloomFilter bloomFilter;
     private boolean isBloomFilterEnabled = false;
     private Histogram histogram;
     private boolean isHistogramEnabled = false;

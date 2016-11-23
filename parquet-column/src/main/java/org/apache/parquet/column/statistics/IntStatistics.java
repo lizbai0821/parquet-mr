@@ -31,7 +31,7 @@ import java.io.Serializable;
 public class IntStatistics extends Statistics<Integer> implements BloomFilterStatistics<Integer>, HistogramStatistics<Integer>, Serializable {
     private int max;
     private int min;
-    private BloomFilter bloomFilter;
+    private transient BloomFilter bloomFilter;
     private boolean isBloomFilterEnabled = false;
     private Histogram histogram;
     private boolean isHistogramEnabled = false;

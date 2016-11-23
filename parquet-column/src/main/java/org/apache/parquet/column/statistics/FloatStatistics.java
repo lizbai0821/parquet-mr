@@ -33,7 +33,7 @@ public class FloatStatistics extends Statistics<Float> implements BloomFilterSta
 
     private float max;
     private float min;
-    private BloomFilter bloomFilter;
+    private transient BloomFilter bloomFilter;
     private boolean isBloomFilterEnabled = false;
     private Histogram histogram;
     private boolean isHistogramEnabled = false;

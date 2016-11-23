@@ -32,7 +32,8 @@ public class DoubleStatistics extends Statistics<Double> implements BloomFilterS
 
     private double max;
     private double min;
-    private BloomFilter bloomFilter;
+
+    private transient BloomFilter bloomFilter;
     private boolean isBloomFilterEnabled = false;
     private Histogram histogram;
     private boolean isHistogramEnabled = false;

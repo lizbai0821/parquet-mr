@@ -160,7 +160,6 @@ public class ParquetOutputFormat<T> extends FileOutputFormat<Void, T> {
   public static final String BOUND_MIN ="parquet.histogram.bound.min";
   public static final String BOUND_MAX = "parquet.histogram.bound.max";
   public static final String BUCKETS_NUMBER = "parquet.histogram.buckets.number";
-  public static final String READ_METADATA = "parquet.reader.read.metadata";
 
   // default to no padding for now
   private static final int DEFAULT_MAX_PADDING_SIZE = 0;

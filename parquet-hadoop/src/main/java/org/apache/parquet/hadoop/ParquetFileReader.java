@@ -633,7 +633,6 @@ public class ParquetFileReader implements Closeable {
    */
   private ParquetFileReader(Configuration configuration, Path file) throws IOException {
     this(configuration, file, NO_FILTER);
-    LOG.debug("Read parquet without RowGroupMetadata");
   }
 
   /**
@@ -647,7 +646,7 @@ public class ParquetFileReader implements Closeable {
     FileSystem fs = file.getFileSystem(conf);
     this.fileStatus = fs.getFileStatus(file);
     this.f = HadoopStreams.wrap(fs.open(file));
-    if(filter == NO_FILTER)
+    if(filter == SKIP_ROW_GROUPS)
       this.footer = readFooter(fileStatus.getLen(), fileStatus.getPath().toString(), f, filter, false, false);
     else
       this.footer = readFooter(fileStatus.getLen(), fileStatus.getPath().toString(), f, filter, true, true); //enable both bloom filter and histogram

@@ -19,10 +19,12 @@
 package org.apache.parquet.hadoop;
 
 import static org.apache.parquet.filter2.compat.RowGroupFilter.FilterLevel.*;
+import static org.apache.parquet.format.converter.ParquetMetadataConverter.SKIP_ROW_GROUPS;
 import static org.apache.parquet.format.converter.ParquetMetadataConverter.offsets;
 import static org.apache.parquet.format.converter.ParquetMetadataConverter.range;
 import static org.apache.parquet.hadoop.ParquetInputFormat.SPLIT_FILES;
 import static org.apache.parquet.hadoop.ParquetInputFormat.getFilter;
+import static org.apache.parquet.hadoop.ParquetInputFormat.isTaskSideMetaData;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -165,12 +167,11 @@ public class ParquetRecordReader<T> extends RecordReader<Void, T> {
         range(split.getStart(), split.getEnd()));
 
     // option to skip reading metadata
-    boolean readMetadata = configuration.getBoolean(ParquetOutputFormat.READ_METADATA, true);
-    ParquetFileReader reader = readMetadata ?
+    ParquetFileReader reader = isTaskSideMetaData(configuration) ?
       ParquetFileReader.open(
         configuration, path, metadataFilter):
       ParquetFileReader.open(
-        configuration, path);
+        configuration, path, SKIP_ROW_GROUPS);
 
     if (rowGroupOffsets != null) {
       // verify a row group was found for each offset

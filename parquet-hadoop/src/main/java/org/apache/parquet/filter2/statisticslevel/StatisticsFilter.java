@@ -201,16 +201,6 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             logger.info("$"+columnName+"$ is dropped by MIN-MAX Filtering");
             return true;
         }
-        // drop it if not hit the bloom filter
-        if (stats instanceof BloomFilterStatistics) {
-            BloomFilterStatistics bfStats = (BloomFilterStatistics) stats;
-            if (bfStats.isBloomFilterEnabled()) {
-                if(!bfStats.test(value)){
-                    logger.info("$"+columnName+"$ is dropped by Bloom-Filter Pruning");
-                    return true;
-                }
-            }
-        }
         return false;
     }
 
@@ -286,26 +276,6 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
         if (value.compareTo(stats.genericGetMin()) <= 0) {
             logger.info("$"+columnName+"$ is dropped by MIN-side Filtering");
             return true;
-        } else {
-            if (haveRange == false)
-                return false;
-
-            InRange inRange = columnRangeMap.get(columnName);
-            if (inRange == null)
-                return false;
-
-            if (!(stats instanceof HistogramStatistics)) {
-                return false;
-            }
-
-            HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
-            if (!histogramStatistics.isHistogramEnabled()) {
-                return false;
-            }
-            if(!histogramStatistics.test(inRange.getLower(), (long)Double.parseDouble(value.toString()))){
-                logger.info("$"+columnName+"$ is dropped by Histogram Filtering");
-                return true;
-            }
         }
         return false;
     }
@@ -374,26 +344,6 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
         if (value.compareTo(stats.genericGetMax()) >= 0) {
             logger.info("$"+columnName+"$ is dropped by MAX-side Filtering");
             return true;
-        } else {
-            if (haveRange == false)
-                return false;
-
-            InRange inRange = columnRangeMap.get(columnName);
-            if (inRange == null)
-                return false;
-
-            if (!(stats instanceof HistogramStatistics)) {
-                return false;
-            }
-
-            HistogramStatistics histogramStatistics = (HistogramStatistics) stats;
-            if (!histogramStatistics.isHistogramEnabled()) {
-                return false;
-            }
-            if(!histogramStatistics.test((long)Double.parseDouble(value.toString()), inRange.getUpper())){
-                logger.info("$"+columnName+"$ is dropped by Histogram Filtering");
-                return true;
-            }
         }
         return false;
     }

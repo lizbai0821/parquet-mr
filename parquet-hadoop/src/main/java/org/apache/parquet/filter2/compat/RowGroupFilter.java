@@ -32,6 +32,8 @@ import org.apache.parquet.filter2.statisticslevel.StatisticsFilter;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.schema.MessageType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.parquet.Preconditions.checkNotNull;
 
@@ -45,6 +47,7 @@ public class RowGroupFilter implements Visitor<List<BlockMetaData>> {
   private final MessageType schema;
   private final List<FilterLevel> levels;
   private final ParquetFileReader reader;
+  private static Logger logger = LoggerFactory.getLogger(RowGroupFilter.class);
 
   public enum FilterLevel {
     STATISTICS,
@@ -100,6 +103,8 @@ public class RowGroupFilter implements Visitor<List<BlockMetaData>> {
         filteredBlocks.add(block);
       }
     }
+
+    logger.info(blocks.size()-filteredBlocks.size() + " blocks are filtered in a group of "+blocks.size()+ " blocks");
 
     return filteredBlocks;
   }

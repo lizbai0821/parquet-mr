@@ -160,7 +160,6 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
     @Override
     @SuppressWarnings("unchecked")
     public <T extends Comparable<T>> Boolean visit(Eq<T> eq) {
-        logger.info("Check equal now");
         Column<T> filterColumn = eq.getColumn();
         ColumnChunkMetaData meta = getColumnChunk(filterColumn.getColumnPath());
 
@@ -194,18 +193,25 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             return BLOCK_CANNOT_MATCH;
         }
 
+        String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
         // drop if value < min || value > max
         boolean isWithinRange =
                 value.compareTo(stats.genericGetMin()) < 0 || value.compareTo(stats.genericGetMax()) > 0;
+        if(isWithinRange){
+            logger.info("$"+columnName+"$ is dropped by MIN-MAX Filtering");
+            return true;
+        }
         // drop it if not hit the bloom filter
-        if (isWithinRange || stats instanceof BloomFilterStatistics) {
+        if (stats instanceof BloomFilterStatistics) {
             BloomFilterStatistics bfStats = (BloomFilterStatistics) stats;
             if (bfStats.isBloomFilterEnabled()) {
-                logger.info("Bloom filter is enabled ");
-                return isWithinRange || !bfStats.test(value);
+                if(!bfStats.test(value)){
+                    logger.info("$"+columnName+"$ is dropped by Bloom-Filter Pruning");
+                    return true;
+                }
             }
         }
-        return isWithinRange;
+        return false;
     }
 
     @Override
@@ -273,16 +279,17 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
         }
 
         T value = lt.getValue();
+        String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
 
         // drop if value <= min
         //return value.compareTo(stats.genericGetMin()) <= 0;
-
         if (value.compareTo(stats.genericGetMin()) <= 0) {
+            logger.info("$"+columnName+"$ is dropped by MIN-side Filtering");
             return true;
         } else {
             if (haveRange == false)
                 return false;
-            String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
+
             InRange inRange = columnRangeMap.get(columnName);
             if (inRange == null)
                 return false;
@@ -295,9 +302,12 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             if (!histogramStatistics.isHistogramEnabled()) {
                 return false;
             }
-            logger.info("Histogram is used for " + columnName);
-            return !histogramStatistics.test(inRange.getLower(), (long)Double.parseDouble(value.toString()));
+            if(!histogramStatistics.test(inRange.getLower(), (long)Double.parseDouble(value.toString()))){
+                logger.info("$"+columnName+"$ is dropped by Histogram Filtering");
+                return true;
+            }
         }
+        return false;
     }
 
     @Override
@@ -357,16 +367,17 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
         }
 
         T value = gt.getValue();
-
+        String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
         // drop if value >= max
         //return value.compareTo(stats.genericGetMax()) >= 0;
 
         if (value.compareTo(stats.genericGetMax()) >= 0) {
+            logger.info("$"+columnName+"$ is dropped by MAX-side Filtering");
             return true;
         } else {
             if (haveRange == false)
                 return false;
-            String columnName = meta.getPath().toString().substring(1, meta.getPath().toString().length() - 1);
+
             InRange inRange = columnRangeMap.get(columnName);
             if (inRange == null)
                 return false;
@@ -379,10 +390,12 @@ public class StatisticsFilter implements FilterPredicate.Visitor<Boolean> {
             if (!histogramStatistics.isHistogramEnabled()) {
                 return false;
             }
-            logger.info("Histogram is used for " + columnName);
-            return !histogramStatistics.test((long)Double.parseDouble(value.toString()), inRange.getUpper());
+            if(!histogramStatistics.test((long)Double.parseDouble(value.toString()), inRange.getUpper())){
+                logger.info("$"+columnName+"$ is dropped by Histogram Filtering");
+                return true;
+            }
         }
-
+        return false;
     }
 
     @Override

@@ -278,6 +278,23 @@ public class ParquetMetadataConverter {
     return stats;
   }
 
+  public static Statistics toParquetStatisticsNoBH(
+          org.apache.parquet.column.statistics.Statistics statistics) {
+    Statistics stats = new Statistics();
+    // Don't write stats larger than the max size rather than truncating. The
+    // rationale is that some engines may use the minimum value in the page as
+    // the true minimum for aggregations and there is no way to mark that a
+    // value has been truncated and is a lower bound and not in the page.
+    if (!statistics.isEmpty() && statistics.isSmallerThan(MAX_STATS_SIZE)) {
+      stats.setNull_count(statistics.getNumNulls());
+      if (statistics.hasNonNullValue()) {
+        stats.setMax(statistics.getMaxBytes());
+        stats.setMin(statistics.getMinBytes());
+      }
+    }
+    return stats;
+  }
+
   /**
    * @deprecated Replaced by {@link #fromParquetStatistics(
    * String createdBy, Statistics statistics, PrimitiveTypeName type)}
@@ -1090,8 +1107,9 @@ public class ParquetMetadataConverter {
         getEncoding(dlEncoding),
         getEncoding(rlEncoding)));
     if (!statistics.isEmpty()) {
+
       pageHeader.getData_page_header()
-          .setStatistics(toParquetStatistics(statistics));
+          .setStatistics(toParquetStatisticsNoBH(statistics));
     }
     return pageHeader;
   }
@@ -1124,7 +1142,7 @@ public class ParquetMetadataConverter {
         getEncoding(dataEncoding),
         dlByteLength, rlByteLength);
     if (!statistics.isEmpty()) {
-      dataPageHeaderV2.setStatistics(toParquetStatistics(statistics));
+      dataPageHeaderV2.setStatistics(toParquetStatisticsNoBH(statistics));
     }
     PageHeader pageHeader = new PageHeader(PageType.DATA_PAGE_V2, uncompressedSize, compressedSize);
     pageHeader.setData_page_header_v2(dataPageHeaderV2);
